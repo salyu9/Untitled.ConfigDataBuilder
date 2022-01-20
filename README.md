@@ -16,7 +16,8 @@ Unity 2019.4 ~ Unity 2021.2 (in progress)
 
 ## Installation
 
-Import this package from Unity package manager (via git URL). Then unzip the dlls from the zip file under NugetPackages folder to your project, Unzip netstandard_2_0.zip for Unity 2021.1 and previous versions, netstandard_2_1.zip for Unity 2021.2 and above (in progress).
+Import this package from Unity package manager (via git URL). Then unzip the dlls from the zip file under NugetPackages folder to your project, Unzip netstandard_2_0.zip for Unity 2021.1 and previous versions, netstandard_2_1.zip for Unity 2021.2 and above (in progress). You can find it using menu "Tools > Config Data > Locate Nuget Packages".
+
 If some dlls are already included in your project, try to unzip remain dlls to your project and see if they conflict. In case of conflict, you may need to manually download compatible version of required nuget packages and import them to your project.
 
 Packages required by this tool are:

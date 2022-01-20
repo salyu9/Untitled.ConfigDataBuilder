@@ -17,6 +17,7 @@ namespace Untitled.ConfigDataBuilder.Editor
     {
         private static readonly UTF8Encoding UTF8 = new UTF8Encoding(false, true);
 
+        private const string NugetPackagePath = "Packages/com.github.salyu9.untitledconfigdatabuilder/NugetPackages/netstandard_2_0.zip";
         private const string BaseLibAssemblyName = "Untitled.ConfigDataBuilder.Base";
         private const string BaseLibNamespace = "Untitled.ConfigDataBuilder.Base";
 
@@ -41,32 +42,6 @@ namespace Untitled.ConfigDataBuilder.Editor
                 if (set.Add(filename)) {
                     yield return file;
                 }
-            }
-        }
-
-        [MenuItem("Tools/Config Data/Dump")]
-        public static void DumpSources()
-        {
-            var settings = GetSettings();
-            try {
-                var path = FileUtil.GetUniqueTempPathInProject();
-
-                if (!Directory.Exists(path)) Directory.CreateDirectory(path);
-
-                var converters = SheetValueConverter.GetSheetValueConverters();
-                var sheets = SheetData.ReadAllSheets(converters, EnumerateSheetFiles());
-                var classNames = new List<string>();
-                foreach (var sheet in sheets) {
-                    classNames.Add(sheet.ClassName);
-                    File.WriteAllText(Path.Combine(path, sheet.ClassName + ".cs"), GenerateConfigClassContent(settings, sheet));
-                }
-                File.WriteAllText(Path.Combine(path, "ConfigDataManager.cs"), GenerateManagerClassContent(converters, settings, classNames));
-
-                EditorUtility.RevealInFinder(Path.Combine(path, "ConfigDataManager.cs"));
-            }
-            catch (Exception e) {
-                Debug.LogError($"Dump {GetSettings().assemblyName} failed");
-                Debug.LogException(e);
             }
         }
 
@@ -106,7 +81,33 @@ namespace Untitled.ConfigDataBuilder.Editor
             }
         }
 
-        [MenuItem("Tools/Config Data/Runtime Reload")]
+        [MenuItem("Tools/Config Data/Dump", false, 301)]
+        public static void DumpSources()
+        {
+            var settings = GetSettings();
+            try {
+                var path = FileUtil.GetUniqueTempPathInProject();
+
+                if (!Directory.Exists(path)) Directory.CreateDirectory(path);
+
+                var converters = SheetValueConverter.GetSheetValueConverters();
+                var sheets = SheetData.ReadAllSheets(converters, EnumerateSheetFiles());
+                var classNames = new List<string>();
+                foreach (var sheet in sheets) {
+                    classNames.Add(sheet.ClassName);
+                    File.WriteAllText(Path.Combine(path, sheet.ClassName + ".cs"), GenerateConfigClassContent(settings, sheet));
+                }
+                File.WriteAllText(Path.Combine(path, "ConfigDataManager.cs"), GenerateManagerClassContent(converters, settings, classNames));
+
+                EditorUtility.RevealInFinder(Path.Combine(path, "ConfigDataManager.cs"));
+            }
+            catch (Exception e) {
+                Debug.LogError($"Dump {GetSettings().assemblyName} failed");
+                Debug.LogException(e);
+            }
+        }
+
+        [MenuItem("Tools/Config Data/Runtime Reload", false, 302)]
         public static void RuntimeReload()
         {
             if (Application.isPlaying) {
@@ -123,6 +124,12 @@ namespace Untitled.ConfigDataBuilder.Editor
                     Debug.Log("Config data reloaded.");
                 }
             }
+        }
+
+        [MenuItem("Tools/Config Data/Locate Nuget Packages", false, 401)]
+        public static void LocateNugetPackages()
+        {
+            EditorUtility.RevealInFinder(NugetPackagePath);
         }
 
         public static bool ReimportData()
