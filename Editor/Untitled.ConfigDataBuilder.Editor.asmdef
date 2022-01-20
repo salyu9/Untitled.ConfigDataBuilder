@@ -1,0 +1,23 @@
+{
+    "name": "Untitled.ConfigDataBuilder.Editor",
+    "rootNamespace": "Untitled.ConfigDataBuilder.Editor",
+    "references": [
+        "GUID:d2c62e76bf6f6bd4eb28f2dd55fb2da6"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "ExcelDataReader.dll",
+        "System.Collections.Immutable.dll",
+        "Microsoft.CodeAnalysis.dll",
+        "Microsoft.CodeAnalysis.CSharp.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

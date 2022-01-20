@@ -1,0 +1,8 @@
+{
+  "name": "com.github.salyu9.untitledconfigdatabuilder",
+  "version": "0.1.0",
+  "displayName": "Untitled Config Data Builder",
+  "description": "Lightweight config building tool for using excel sheet data in unity 3D.",
+  "unity": "2019.4",
+  "type": "tool"
+}
