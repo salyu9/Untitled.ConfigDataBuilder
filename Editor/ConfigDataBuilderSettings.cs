@@ -13,7 +13,7 @@ namespace Untitled.ConfigDataBuilder.Editor
         [SerializeField] internal string assemblyName = "ConfigData";
         [SerializeField] internal string assemblyNamespace = "";
         [SerializeField] internal string assemblyOutputPath = "Assets/ConfigData/ConfigData.dll";
-        [SerializeField] internal string dataOutputFolder = "Assets/Resources/ConfigData/";
+        [SerializeField] internal string dataOutputFolder = "ConfigData/";
         [SerializeField] internal string l10nCustomExporterType = "";
         [SerializeField] internal string[] customTypesAssemblies = Array.Empty<string>();
         [SerializeField] internal string[] importingAssemblies = Array.Empty<string>();

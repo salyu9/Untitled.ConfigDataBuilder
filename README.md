@@ -1,5 +1,7 @@
 # Untitled Config Data Builder
 
+[![openupm](https://img.shields.io/npm/v/com.github.salyu9.untitledconfigdatabuilder?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.github.salyu9.untitledconfigdatabuilder/)
+
 Lightweight config building tool for using excel sheet data in unity 3D.
 
 Sheet data construction will be compiled to an assembly (dll) that contains several classes that can be used by user scripts.
@@ -16,17 +18,31 @@ Unity 2019.4 ~ Unity 2021.2 (in progress)
 
 ## Installation
 
-Import this package from Unity package manager (via git URL). Then unzip the dlls from the zip file under NugetPackages folder to your project, Unzip netstandard_2_0.zip for Unity 2021.1 and previous versions, netstandard_2_1.zip for Unity 2021.2 and above (in progress). You can find it using menu "Tools > Config Data > Locate Nuget Packages".
+1. Install this package to your project.
 
-If some dlls are already included in your project, try to unzip remain dlls to your project and see if they conflict. In case of conflict, you may need to manually download compatible version of required nuget packages and import them to your project.
+    You can install this package via git URL or OpenUPM.
 
-Packages required by this tool are:
+    - via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder#v0.1.1` to package manager.
 
-- ExcelDataReader (Version=3.6.0)
+    - via OpenUPM: Install this [OpenUPM Package](https://openupm.com/packages/com.github.salyu9.untitledconfigdatabuilder/)
 
-- Microsoft.CodeAnalysis.CSharp (Version=3.11.0)
+2. Open your project with Unity Editor if not opened. You will encounter compile errors due to missing nuget packages. Click "Ignore" if this dialog appears.
 
-## Configuation
+    ![CompileError](./Doc/Images/compile-error.png)
+
+3. Unzip the dlls from the zip file under NugetPackages folder to your project, Unzip netstandard_2_0.zip for Unity 2021.1 and previous versions, netstandard_2_1.zip for Unity 2021.2 and above (in progress). You can find it using menu "Tools > Config Data > Locate Nuget Packages".
+    
+    ![LocatePackages](./Doc/Images/locate-packages.png)
+
+    If some dlls are already included in your project, try to unzip remain dlls to your project and see if they conflict. In case of conflict, you may need to manually download compatible version of required nuget packages and import them to your project.
+
+    Packages required by this tool are:
+
+   - ExcelDataReader (Version=3.6.0)
+
+   - Microsoft.CodeAnalysis.CSharp (Version=3.11.0)
+
+## Configuration
 
 Use "Project Settings > Config Data Builder" to modify config building settings.
 
@@ -225,7 +241,7 @@ Custom types cannot used in arrays or dictionaries.
 
 ### Flags
 
-Flag row defines specical handlings of properties. A column (property) can have multiple flags, separated by '|'. Some flag can have a value after it with a colon. Example: `separator:# | ref:Skill.Id`.
+Flag row defines special handling of properties. A column (property) can have multiple flags, separated by '|'. Some flag can have a value after it with a colon. Example: `separator:# | ref:Skill.Id`.
 
 Supported flags are list below.
 
@@ -276,7 +292,7 @@ Supported flags are list below.
 
 ### Localization data
 
-It is a common use case that config contains properties that should be localized. Untitled Config Builder provides a way to intergrate config data with your localization solutions. To use this feature:
+It is a common use case that config contains properties that should be localized. Untitled Config Builder provides a way to integrate config data with your localization solutions. To use this feature:
 
 - Sheet contains localization source data should have one and only one property that is marked as `key` property.
 
@@ -363,11 +379,11 @@ File: Assets/StreamingAssets/Localization/en/Monster.json
 }
 ```
 
-The exporter will be invoked when config data is reimported. This example exporter writes localization source to json files in streaming assets folder, which can be load at runtime. You can make your own exporter and intergrate to your localization solution.
+The exporter will be invoked when config data are reimported. This example exporter writes localization source to json files in streaming assets folder, which can be load at runtime. You can make your own exporter and integrate to your localization solution.
 
 ### Recompile & auto reimport & play mode reload
 
-When source files are edited and saved, Untitled Config Builder will try to reimport source files and export config data. You needn't do anything if the construction is not changed. If editor is in play mode, config data will also be reloaded automatically, call to `AllConfigs()` and `From<Key>()` methods will reflect new changes. But config class instances won't change after accquired.
+When source files are edited and saved, Untitled Config Builder will try to reimport source files and export config data. You needn't do anything if the construction is not changed. If editor is in play mode, config data will also be reloaded automatically, call to `AllConfigs()` and `From<Key>()` methods will reflect new changes. But config class instances won't change after acquired.
 
 If config construction has changed, reimporting procedure will fail with a warning reported: "Config dll types mismatch. Rebuilding config required." In this case, you should use menu "Tools > Config Data > Rebuild Config" to rebuild config assembly and reimport config data.
 

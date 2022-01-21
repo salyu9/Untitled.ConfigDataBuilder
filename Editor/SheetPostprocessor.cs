@@ -8,15 +8,18 @@ namespace Untitled.ConfigDataBuilder.Editor
 {
     internal class SheetPostprocessor : AssetPostprocessor
     {
-        private static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets,
+        private static void OnPostprocessAllAssets(
+            string[] importedAssets,
+            string[] deletedAssets,
+            string[] movedAssets,
             string[] movedFromAssetPaths)
         {
             var settings = ConfigDataBuilderSettings.TryGetSettings();
-            var outputFolder = Path.Combine("Assets/Resources", settings.dataOutputFolder).Replace("\\", "/");
-
             if (settings == null) {
                 return;
-            }
+            }            
+
+            var outputFolder = Path.Combine("Assets/Resources", settings.dataOutputFolder).Replace("\\", "/");
 
             var shouldReimportData = importedAssets.Concat(deletedAssets).Concat(movedAssets).Concat(movedFromAssetPaths)
                 .Any(asset => asset.StartsWith(settings.sourceFolder) &&

@@ -17,7 +17,6 @@ namespace Untitled.ConfigDataBuilder.Editor
     {
         private static readonly UTF8Encoding UTF8 = new UTF8Encoding(false, true);
 
-        private const string NugetPackagePath = "Packages/com.github.salyu9.untitledconfigdatabuilder/NugetPackages/netstandard_2_0.zip";
         private const string BaseLibAssemblyName = "Untitled.ConfigDataBuilder.Base";
         private const string BaseLibNamespace = "Untitled.ConfigDataBuilder.Base";
 
@@ -124,12 +123,6 @@ namespace Untitled.ConfigDataBuilder.Editor
                     Debug.Log("Config data reloaded.");
                 }
             }
-        }
-
-        [MenuItem("Tools/Config Data/Locate Nuget Packages", false, 401)]
-        public static void LocateNugetPackages()
-        {
-            EditorUtility.RevealInFinder(NugetPackagePath);
         }
 
         public static bool ReimportData()
