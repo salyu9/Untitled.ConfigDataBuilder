@@ -2,7 +2,9 @@
     "name": "Untitled.ConfigDataBuilder.Menu",
     "rootNamespace": "Untitled.ConfigDataBuilder.Menu",
     "references": [],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": true,

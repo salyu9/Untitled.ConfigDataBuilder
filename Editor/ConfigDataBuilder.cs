@@ -460,7 +460,6 @@ namespace Untitled.ConfigDataBuilder.Editor
                 "System.Core",
                 "System.Runtime",
                 "UnityEngine.CoreModule",
-                "YamlDotNet",
                 BaseLibAssemblyName,
             };
 
