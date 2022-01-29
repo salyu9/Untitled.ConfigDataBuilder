@@ -22,7 +22,7 @@ Unity 2019.4 ~ Unity 2021.2 (in progress)
 
     You can install this package via git URL or OpenUPM.
 
-    - via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder#v0.1.1` to package manager.
+    - via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder#v0.1.2` to package manager.
 
     - via OpenUPM: Install this [OpenUPM Package](https://openupm.com/packages/com.github.salyu9.untitledconfigdatabuilder/)
 
@@ -30,8 +30,8 @@ Unity 2019.4 ~ Unity 2021.2 (in progress)
 
     ![CompileError](./Doc/Images/compile-error.png)
 
-3. Unzip the dlls from the zip file under NugetPackages folder to your project, Unzip netstandard_2_0.zip for Unity 2021.1 and previous versions, netstandard_2_1.zip for Unity 2021.2 and above (in progress). You can find it using menu "Tools > Config Data > Locate Nuget Packages".
-    
+3. Unzip the dlls from the zip file under "Packages/Untitled Config Data Builder/NugetPackages" folder to your project, Unzip netstandard_2_0.zip for Unity 2021.1 and previous versions, netstandard_2_1.zip for Unity 2021.2 and above (in progress). You can also find it using menu "Tools > Config Data > Locate Nuget Packages".
+
     ![LocatePackages](./Doc/Images/locate-packages.png)
 
     If some dlls are already included in your project, try to unzip remain dlls to your project and see if they conflict. In case of conflict, you may need to manually download compatible version of required nuget packages and import them to your project.
@@ -129,11 +129,11 @@ class MyBehaviour: MonoBehaviour
 
 File name is insignificant to this tool. You can use any valid name as your config file name.
 
-Sheet name will be used as prefix of the class name, it should contains only A-Z/a-z/0-9 for this tool. For example, sheet 'Skill' will be compiled to class `SkillConfig`.
+Sheet name will be used as prefix of the class name, it should contain only A-Z/a-z/0-9 for this tool. For example, sheet 'Skill' will be compiled to class `SkillConfig`.
 
-Sheet name can contain a period, informing the sheet is part of the full config data of the same config class. Part before period will be the name prefix of the class. Sheets with same name prefix must have the same structure, but can be in different files. For example: data from sheet 'Skill.1' in file 'A.xslx' and sheet 'Skill.abc' in file 'B.xslx' will be merged to data of `SkillConfig`.
+Sheet name can contain a period, informing the sheet is part of the full config data of the same config class. The part before period will be the name prefix of the class. Sheets with same name prefix must have the same structure, but can be in different files. For example: data from sheet 'Skill.1' in file 'A.xslx' and sheet 'Skill.abc' in file 'B.xslx' will be merged to data of `SkillConfig`.
 
-Sheets which name begins with '(' or '（' are fully ignored. This allows user to add design-only sheet in config files, with names like '(Plans)' or '(TempData)'.
+A sheet that have a name begin with '(' or '（' is fully ignored. This allows user to add design-only sheet in config files, with names like '(Plans)' or '(TempData)'.
 
 ### Sheet data structure
 
