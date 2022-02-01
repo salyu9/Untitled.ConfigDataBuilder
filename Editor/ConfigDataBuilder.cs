@@ -1,6 +1,5 @@
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using System;
+using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -8,8 +7,6 @@ using System.Reflection;
 using System.Text;
 using UnityEditor;
 using UnityEngine;
-using Assembly = System.Reflection.Assembly;
-using CodeAnalysisSyntaxTree = Microsoft.CodeAnalysis.SyntaxTree;
 
 namespace Untitled.ConfigDataBuilder.Editor
 {
@@ -447,7 +444,7 @@ namespace Untitled.ConfigDataBuilder.Editor
             return builder.ToString();
         }
 
-        private static byte[] Compile(ConfigDataBuilderSettings settings, IEnumerable<CodeAnalysisSyntaxTree> syntaxTrees)
+        private static byte[] Compile(ConfigDataBuilderSettings settings, string folder, string[] fileNames)
         {
             var assemblies = AppDomain.CurrentDomain.GetAssemblies()
                 .Where(a => !a.IsDynamic)
@@ -463,35 +460,38 @@ namespace Untitled.ConfigDataBuilder.Editor
                 BaseLibAssemblyName,
             };
 
-            var metaRefs = new List<MetadataReference>();
+            var provider = CodeDomProvider.CreateProvider("C#");
+
+            var refAsmLocations = new List<string>();
             foreach (var asmName in refAssemblies) {
                 if (assemblies.TryGetValue(asmName, out var location)) {
-                    metaRefs.Add(MetadataReference.CreateFromFile(location));
+                    refAsmLocations.Add(location);
                 }
                 else {
                     Debug.LogWarning($"Cannot find referenced assembly: {asmName}");
                 }
             }
 
-            var options = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary);
+            var asmPath = folder + "/ResultAssembly";
+            var options = new CompilerParameters(refAsmLocations.ToArray(), asmPath) {
+                GenerateExecutable = false,
+            };
 
-            var compilation = CSharpCompilation.Create(settings.assemblyName, syntaxTrees, metaRefs, options);
+            var result = provider.CompileAssemblyFromFile(options, fileNames);
 
-            using var ms = new MemoryStream();
-            var result = compilation.Emit(ms);
-
-            if (!result.Success) {
-
+            var errors = new List<string>();
+            var warns = new List<string>();
+            foreach (CompilerError v in result.Errors) {
+                (v.IsWarning ? warns : errors).Add($"{v.ErrorNumber}({v.Line}: {v.Column}): {v.ErrorText}");
+            }
+            if (errors.Count > 0) {
                 var builder = new StringBuilder("Compilation Failure: ").AppendLine();
-                var failures = result.Diagnostics.Where(diagnostic =>
-                    diagnostic.IsWarningAsError ||
-                    diagnostic.Severity == DiagnosticSeverity.Error);
-
+                
                 var lines = 0;
-                foreach (var diagnostic in failures) {
+                foreach (var error in errors) {
                     ++lines;
                     if (lines < 10) {
-                        builder.AppendLine($"\t{diagnostic.Id}({diagnostic.Location.GetLineSpan()}): {diagnostic.GetMessage()}");
+                        builder.AppendLine("\t" + error);
                     }
                     else if (lines == 10) {
                         builder.AppendLine("...");
@@ -499,24 +499,35 @@ namespace Untitled.ConfigDataBuilder.Editor
                 }
                 throw new InvalidDataException(builder.ToString());
             }
-            return ms.ToArray();
+            foreach (var warn in warns) {
+                Debug.LogWarning(warn);
+            }
+
+            return File.ReadAllBytes(asmPath);
         }
 
         private static bool InternalBuildConfig()
         {
             var settings = GetSettings();
+            var folder = FileUtil.GetUniqueTempPathInProject();
+            Directory.CreateDirectory(folder);
             try {
                 EditorUtility.DisplayProgressBar("Info", "Building config", 0);
                 var classNames = new List<string>();
-                var syntaxTrees = new List<CodeAnalysisSyntaxTree>();
+                var fileNames = new List<string>();
                 var converters = SheetValueConverter.GetSheetValueConverters();
                 foreach (var sheet in SheetData.ReadAllHeaders(converters, EnumerateSheetFiles())) {
-                    syntaxTrees.Add(CSharpSyntaxTree.ParseText(GenerateConfigClassContent(settings, sheet), path: sheet.ClassName + ".cs"));
+                    var fileName = folder + "/" + sheet.ClassName + ".cs";
+                    File.WriteAllText(fileName, GenerateConfigClassContent(settings, sheet));
                     classNames.Add(sheet.ClassName);
+                    fileNames.Add(fileName);
                 }
-                syntaxTrees.Add(CSharpSyntaxTree.ParseText(GenerateManagerClassContent(converters, settings, classNames),
-                    path: "ConfigDataManager.cs"));
-                var bytes = Compile(settings, syntaxTrees);
+
+                var managerFileName = folder + "/" + "ConfigDataManager.cs";
+                File.WriteAllText(managerFileName, GenerateManagerClassContent(converters, settings, classNames));
+                fileNames.Add(managerFileName);
+
+                var bytes = Compile(settings, folder, fileNames.ToArray());
                 File.WriteAllBytes(settings.assemblyOutputPath, bytes);
                 Debug.Log($"Compile {settings.assemblyName} succeeded.");
                 AssetDatabase.ImportAsset(settings.assemblyOutputPath);

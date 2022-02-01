@@ -11,10 +11,7 @@
     "allowUnsafeCode": false,
     "overrideReferences": true,
     "precompiledReferences": [
-        "ExcelDataReader.dll",
-        "System.Collections.Immutable.dll",
-        "Microsoft.CodeAnalysis.dll",
-        "Microsoft.CodeAnalysis.CSharp.dll"
+        "ExcelDataReader.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [],

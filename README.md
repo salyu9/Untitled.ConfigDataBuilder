@@ -220,7 +220,7 @@ public class MyPointConverter : IConfigValueConverter<MyPoint>
     // Used in config class' ToString() method.
     public string ToString(MyPoint value)
     {
-        return $"<{nameof(MyPoint)} X={x}, Y={y}>";
+        return $"<{nameof(MyPoint)} X={value.X}, Y={value.Y}>";
     }
 
     // Cannot be used in arrays/dictionaries due to separator conflict,
