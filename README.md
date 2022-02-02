@@ -10,37 +10,19 @@ Sheet data will be export to bytes assets in resources folder, which can be load
 
 ## Requirements
 
-Unity 2019.4 ~ Unity 2021.2 (in progress)
+Unity 2019.4 ~ Unity 2021.2
 
 ⚠️ _Warning_: This package is under development and may change at any time, please use at your own risk.
 
-⚠️ _Warning_: This tool uses nuget packages (ExcelDataReader, CodeAnalysis, etc.). To avoid conflicts, nuget packages' dlls are not included in this package. Instead a zip of dlls is provided for manually importing packages. Please unzip these dlls to your project, or manually download required packages from nuget and import them in case of conflicts. See installation section for more information.
+⚠️ _Warning_: This tool uses [ExcelDataReader](https://github.com/ExcelDataReader/ExcelDataReader) as an editor-only plugin. If your project has another copy of ExcelDataReader dll, you can download sources of this repository and install Untitled Config Data Builder as a local package.
 
 ## Installation
 
-1. Install this package to your project.
+You can install this package via OpenUPM (recommended) or git URL.
 
-    You can install this package via git URL or OpenUPM.
+- via OpenUPM: Install this [OpenUPM Package](https://openupm.com/packages/com.github.salyu9.untitledconfigdatabuilder/)
 
-    - via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder#v0.1.2` to package manager.
-
-    - via OpenUPM: Install this [OpenUPM Package](https://openupm.com/packages/com.github.salyu9.untitledconfigdatabuilder/)
-
-2. Open your project with Unity Editor if not opened. You will encounter compile errors due to missing nuget packages. Click "Ignore" if this dialog appears.
-
-    ![CompileError](./Doc/Images/compile-error.png)
-
-3. Unzip the dlls from the zip file under "Packages/Untitled Config Data Builder/NugetPackages" folder to your project, Unzip netstandard_2_0.zip for Unity 2021.1 and previous versions, netstandard_2_1.zip for Unity 2021.2 and above (in progress). You can also find it using menu "Tools > Config Data > Locate Nuget Packages".
-
-    ![LocatePackages](./Doc/Images/locate-packages.png)
-
-    If some dlls are already included in your project, try to unzip remain dlls to your project and see if they conflict. In case of conflict, you may need to manually download compatible version of required nuget packages and import them to your project.
-
-    Packages required by this tool are:
-
-   - ExcelDataReader (Version=3.6.0)
-
-   - Microsoft.CodeAnalysis.CSharp (Version=3.11.0)
+- via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder#v0.1.3` to package manager.
 
 ## Configuration
 
@@ -253,7 +235,7 @@ Supported flags are list below.
 
     ![EmptyKey](Doc/Images/empty-key.png)
 
-    In the config class, each key property corresponds to a dictionary and a query method. For example, if 'Skill' sheet has a `int` key property 'Id' and a `string` key property 'Name', you can query config row with code like this:
+    In the config class, each key property corresponds to a dictionary and a query method. For example, if 'Skill' sheet has an `int` key property 'Id' and a `string` key property 'Name', you can query config row with code like this:
 
     ```csharp
     SkillConfig config123 = SkillConfig.FromId(123);
@@ -298,7 +280,7 @@ It is a common use case that config contains properties that should be localized
 
 - Mark localization properties as `info:L10n`. These properties must be `string` or `string[]`.
 
-- Make a exporter class that implements `Untitled.ConfigDataBuilder.Editor.IL10nExporter`.
+- Make an exporter class that implements `Untitled.ConfigDataBuilder.Editor.IL10nExporter`.
 
 - Add exporter class' fullname to settings.
 
