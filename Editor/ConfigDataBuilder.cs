@@ -451,11 +451,10 @@ namespace Untitled.ConfigDataBuilder.Editor
                 .ToLookup(a => a.GetName().Name, a => a.Location)
                 .ToDictionary(a => a.Key, a => a.First());
 
-            var refAssemblies = new HashSet<string>(settings.importingAssemblies) {
+            var refAssemblies = new HashSet<string>(settings.importingAssemblies.Concat(settings.customTypesAssemblies)) {
                 "mscorlib",
                 "netstandard",
                 "System.Core",
-                "System.Runtime",
                 "UnityEngine.CoreModule",
                 BaseLibAssemblyName,
             };
@@ -472,7 +471,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                 }
             }
 
-            var asmPath = folder + "/ResultAssembly";
+            var asmPath = folder + "/" + settings.assemblyName + ".dll";
             var options = new CompilerParameters(refAsmLocations.ToArray(), asmPath) {
                 GenerateExecutable = false,
             };
