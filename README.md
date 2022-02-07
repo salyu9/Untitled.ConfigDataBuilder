@@ -22,7 +22,7 @@ You can install this package via OpenUPM (recommended) or git URL.
 
 - via OpenUPM: Install this [OpenUPM Package](https://openupm.com/packages/com.github.salyu9.untitledconfigdatabuilder/)
 
-- via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder.git#v0.1.3` to package manager.
+- via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder.git#v0.1.4` to package manager.
 
 ## Configuration
 
@@ -42,7 +42,7 @@ Use "Project Settings > Config Data Builder" to modify config building settings.
 
 - Custom Type Assemblies: Config data can contain custom types from user scripts. To use custom types, add the names of the assemblies that contains these types at here. See #Usage for more details about custom types.
 
-- Importing assemblies: Extra assemblies that the compiled assembly should reference. Custom type assemblies should also be included here.
+- Importing assemblies: Extra assemblies that the compiled assembly should reference. Custom type assemblies will be auto imported.
 
 ## Usage
 
@@ -219,7 +219,7 @@ Then you can use it in config data:
 
 ![Image](Doc/Images/custom-types.png)
 
-Custom types cannot used in arrays or dictionaries.
+Custom types cannot be used in arrays or dictionaries if `IsScalar` returns false.
 
 ### Flags
 
