@@ -22,7 +22,7 @@ You can install this package via OpenUPM (recommended) or git URL.
 
 - via OpenUPM: Install this [OpenUPM Package](https://openupm.com/packages/com.github.salyu9.untitledconfigdatabuilder/)
 
-- via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder.git#v0.1.4` to package manager.
+- via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder.git#v0.1.5` to package manager.
 
 ## Configuration
 
@@ -30,11 +30,9 @@ Use "Project Settings > Config Data Builder" to modify config building settings.
 
 - Source folder: The folder in project assets that contains the excel files.
 
-- Assembly name: The name of the compiled assembly.
-
 - Assembly namespace: The namespace of the classes in the compiled assembly.
 
-- Assembly output path: The file path of the compiled assembly.
+- Assembly output path: The file path of the compiled assembly. The file name will be the assembly name.
 
 - Data output: The path (relative to Assets/Resources) of the folder which will contain exported data.
 
