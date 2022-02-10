@@ -6,7 +6,9 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using UnityEditor;
+using UnityEditor.Compilation;
 using UnityEngine;
+using Assembly = System.Reflection.Assembly;
 
 namespace Untitled.ConfigDataBuilder.Editor
 {
@@ -20,6 +22,11 @@ namespace Untitled.ConfigDataBuilder.Editor
         private static ConfigDataBuilderSettings GetSettings()
         {
             return ConfigDataBuilderSettings.GetOrCreateSettings();
+        }
+
+        private static string GetAssemblyName(ConfigDataBuilderSettings settings)
+        {
+            return Path.GetFileNameWithoutExtension(settings.assemblyOutputPath);
         }
 
         private static IEnumerable<string> EnumerateSheetFiles()
@@ -98,7 +105,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                 EditorUtility.RevealInFinder(Path.Combine(path, "ConfigDataManager.cs"));
             }
             catch (Exception e) {
-                Debug.LogError($"Dump {GetSettings().assemblyName} failed");
+                Debug.LogError($"Dump {GetSettings().assemblyOutputPath} failed");
                 Debug.LogException(e);
             }
         }
@@ -109,9 +116,9 @@ namespace Untitled.ConfigDataBuilder.Editor
             if (Application.isPlaying) {
                 var settings = GetSettings();
                 var asm = AppDomain.CurrentDomain
-                    .GetAssemblies().FirstOrDefault(a => a.GetName().Name == settings.assemblyName);
+                    .GetAssemblies().FirstOrDefault(a => a.GetName().Name == GetAssemblyName(settings));
                 if (asm == null) {
-                    Debug.Log($"Cannot find {settings.assemblyName}");
+                    Debug.Log($"Cannot find {GetAssemblyName(settings)} at runtime");
                 }
                 else {
                     var method = asm.GetType($"{settings.assemblyNamespace}.ConfigDataManager").GetMethod("Reload");
@@ -153,7 +160,7 @@ namespace Untitled.ConfigDataBuilder.Editor
 
             Dictionary<string, Type> typeTable;
             try {
-                var assembly = Assembly.LoadFile(settings.assemblyOutputPath);
+                var assembly = Assembly.LoadFile(Path.GetFullPath(settings.assemblyOutputPath));
                 typeTable = assembly.GetExportedTypes()
                     .Where(type => type.Name.EndsWith("Config", StringComparison.Ordinal))
                     .ToDictionary(type => type.Name);
@@ -451,6 +458,14 @@ namespace Untitled.ConfigDataBuilder.Editor
                 .ToLookup(a => a.GetName().Name, a => a.Location)
                 .ToDictionary(a => a.Key, a => a.First());
 
+#if UNITY_2021_2_OR_NEWER
+            var refAssemblies = new HashSet<string>(settings.importingAssemblies.Concat(settings.customTypesAssemblies)) {
+                "netstandard",
+                "System.Core",
+                "UnityEngine.CoreModule",
+                BaseLibAssemblyName,
+            };
+#elif UNITY_2019_4_OR_NEWER
             var refAssemblies = new HashSet<string>(settings.importingAssemblies.Concat(settings.customTypesAssemblies)) {
                 "mscorlib",
                 "netstandard",
@@ -458,6 +473,9 @@ namespace Untitled.ConfigDataBuilder.Editor
                 "UnityEngine.CoreModule",
                 BaseLibAssemblyName,
             };
+#else
+            throw new InvalidOperationException($"Invalid Unity Version");
+#endif
 
             var provider = CodeDomProvider.CreateProvider("C#");
 
@@ -471,7 +489,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                 }
             }
 
-            var asmPath = folder + "/" + settings.assemblyName + ".dll";
+            var asmPath = folder + "/" + GetAssemblyName(settings) + ".dll";
             var options = new CompilerParameters(refAsmLocations.ToArray(), asmPath) {
                 GenerateExecutable = false,
             };
@@ -485,7 +503,7 @@ namespace Untitled.ConfigDataBuilder.Editor
             }
             if (errors.Count > 0) {
                 var builder = new StringBuilder("Compilation Failure: ").AppendLine();
-                
+
                 var lines = 0;
                 foreach (var error in errors) {
                     ++lines;
@@ -528,12 +546,12 @@ namespace Untitled.ConfigDataBuilder.Editor
 
                 var bytes = Compile(settings, folder, fileNames.ToArray());
                 File.WriteAllBytes(settings.assemblyOutputPath, bytes);
-                Debug.Log($"Compile {settings.assemblyName} succeeded.");
+                Debug.Log($"Compile {settings.assemblyOutputPath} succeeded.");
                 AssetDatabase.ImportAsset(settings.assemblyOutputPath);
                 return true;
             }
             catch (Exception e) {
-                Debug.LogError($"Compile {settings.assemblyName} failed.");
+                Debug.LogError($"Compile {settings.assemblyOutputPath} failed.");
                 Debug.LogException(e);
                 return false;
             }

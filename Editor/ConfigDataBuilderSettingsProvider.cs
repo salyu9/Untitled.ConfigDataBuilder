@@ -13,8 +13,6 @@ namespace Untitled.ConfigDataBuilder.Editor
         {
             public static readonly GUIContent SourceFolder = new GUIContent("Source folder", "The folder where config files are in");
 
-            public static readonly GUIContent AssemblyName = new GUIContent("Assembly name", "The name of compiled assembly");
-
             public static readonly GUIContent AssemblyNamespace =
                 new GUIContent("Assembly namespace", "The namespace of classes in target assembly");
 
@@ -45,7 +43,6 @@ namespace Untitled.ConfigDataBuilder.Editor
         {
             EditorGUILayout.Separator();
             EditorGUILayout.PropertyField(_settings.FindProperty(nameof(ConfigDataBuilderSettings.sourceFolder)), Styles.SourceFolder);
-            EditorGUILayout.PropertyField(_settings.FindProperty(nameof(ConfigDataBuilderSettings.assemblyName)), Styles.AssemblyName);
             EditorGUILayout.PropertyField(_settings.FindProperty(nameof(ConfigDataBuilderSettings.assemblyNamespace)), Styles.AssemblyNamespace);
             EditorGUILayout.PropertyField(_settings.FindProperty(nameof(ConfigDataBuilderSettings.assemblyOutputPath)), Styles.AssemblyOutputPath);
             EditorGUILayout.PropertyField(_settings.FindProperty(nameof(ConfigDataBuilderSettings.dataOutputFolder)), Styles.DataOutput);

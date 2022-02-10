@@ -10,7 +10,6 @@ namespace Untitled.ConfigDataBuilder.Editor
         internal const string ConfigDataBuilderSettingsPath = "Assets/Editor/ConfigDataBuilderSettings.asset";
 
         [SerializeField] internal string sourceFolder = "Assets/";
-        [SerializeField] internal string assemblyName = "ConfigData";
         [SerializeField] internal string assemblyNamespace = "";
         [SerializeField] internal string assemblyOutputPath = "Assets/ConfigData/ConfigData.dll";
         [SerializeField] internal string dataOutputFolder = "ConfigData/";
