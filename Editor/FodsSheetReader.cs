@@ -54,7 +54,7 @@ namespace Untitled.ConfigDataBuilder.Editor
             }
         }
 
-        public string Name =>
+        public string SheetName =>
             _currentName ?? throw new InvalidOperationException("Cannot read row while no sheets read, previous operation has failed");
 
         public bool ReadNextSheet()

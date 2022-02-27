@@ -6,9 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using UnityEditor;
-using UnityEditor.Compilation;
 using UnityEngine;
-using Assembly = System.Reflection.Assembly;
 
 namespace Untitled.ConfigDataBuilder.Editor
 {
@@ -279,10 +277,6 @@ namespace Untitled.ConfigDataBuilder.Editor
                     builder.AppendLine("public override string ToString()");
                     builder.IndentWithOpenBrace();
                     {
-                        // builder.AppendLine(
-                        //     "var serializer = new YamlDotNet.Serialization.SerializerBuilder().WithUnityTypes().WithEverythingFlow().Build();");
-                        // builder.AppendLine($"return \"{sheet.ClassName} \" + serializer.Serialize(this);");
-
                         builder.AppendLine($"return \"{{{sheet.ClassName} \"");
                         var first = true;
                         foreach (var col in sheet.Header) {
@@ -381,9 +375,8 @@ namespace Untitled.ConfigDataBuilder.Editor
                 {
                     builder.AppendLine("private static bool _initialized;");
                     builder.AppendLine();
-                    foreach (var info in converters.GetCustomConverterInfo()) {
-                        builder.Append("internal static ").Append(BaseLibNamespace).Append(".IConfigValueConverter<").Append(info.TypeName)
-                            .Append("> ").AppendLine(info.VariableName);
+                    foreach (var info in converters.EnumerateConverterInfo()) {
+                        builder.Append("internal static readonly ").Append(info.ConverterTypeName).Append(" ").AppendLine(info.VariableName);
                         builder.Indent().Append("= new ").Append(info.ConverterTypeName).Append("();").Dedent().AppendLine();
                     }
                     builder.AppendLine("public static void Reload()");

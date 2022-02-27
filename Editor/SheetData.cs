@@ -66,7 +66,7 @@ namespace Untitled.ConfigDataBuilder.Editor
 
         private static InternalSheetData ReadSheet(ISheetValueConverterCollection converters, ISheetReader reader, string path, bool headerOnly)
         {
-            var sheetName = reader.Name;
+            var sheetName = reader.SheetName;
             // Name row
             if (!reader.ReadNextRow()) {
                 throw new InvalidDataException($"{path}({sheetName}) has no header row.");
@@ -243,12 +243,6 @@ namespace Untitled.ConfigDataBuilder.Editor
                         var rest = trimmed.Substring("separator:".Length);
                         colInfo.Converter.Separator = rest;
                     }
-                    else if (trimmed.Equals("ignore-empty", StringComparison.OrdinalIgnoreCase)) {
-                        if (!(colInfo.Converter is IMultiSegConverter multiSegConverter)) {
-                            throw new InvalidDataException($"{colDebugName} invalid 'ignore-empty' flag for non multi-seg converter");
-                        }
-                        multiSegConverter.IgnoreEmpty = true;
-                    }
                     else {
                         throw new InvalidDataException($"{colDebugName} has unknown flag '{trimmed}'");
                     }
@@ -399,7 +393,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                     _       => throw new ArgumentOutOfRangeException()
                 };
                 do {
-                    var sheetName = reader.Name.Trim();
+                    var sheetName = reader.SheetName.Trim();
                     if (string.IsNullOrEmpty(sheetName) || sheetName[0] == '(' || sheetName[0] == '（') {
                         continue;
                     }

@@ -9,30 +9,25 @@ using Untitled.ConfigDataBuilder.Base;
 
 namespace Untitled.ConfigDataBuilder.Editor
 {
-    internal interface IMultiSegConverter
-    {
-        bool IgnoreEmpty { get; set; }
-    }
-
     internal interface ISheetValueConverterCollection
     {
         SheetValueConverter GetConverter(string typeName);
-        IEnumerable<CustomConverterInfo> GetCustomConverterInfo();
+        IEnumerable<ConverterInfo> EnumerateConverterInfo();
     }
 
-    internal class CustomConverterInfo
+    internal class ConverterInfo
     {
         public string TypeName { get; }
         public string ConverterTypeName { get; }
         public string VariableName { get; }
 
-        public CustomConverterInfo(string typeName, string converterTypeName, string variableName)
+        public ConverterInfo(string typeName, string converterTypeName, string variableName)
             => (TypeName, ConverterTypeName, VariableName) = (typeName, converterTypeName, variableName);
     }
 
     internal abstract class SheetValueConverter
     {
-        public static string GetCustomConverterVariableNameForType(string typeFullName)
+        private static string GetConverterVariableNameForType(string typeFullName)
         {
             return typeFullName.Replace(".", "_");
         }
@@ -50,410 +45,6 @@ namespace Untitled.ConfigDataBuilder.Editor
 
         public virtual string ToStringExp(string varName)
             => varName + ".ToString()";
-
-        private class BoolConverter : SheetValueConverter
-        {
-            public override string TypeName => "bool";
-            public override Type Type { get; } = typeof(bool);
-            public override bool HasSeparator => false;
-
-            public override object Convert(object rawValue)
-                => rawValue is bool b ? b : System.Convert.ToBoolean(rawValue);
-
-            public override string ReadBinaryExp(string readerVarName)
-                => readerVarName + ".ReadBoolean()";
-
-            public override void WriteBinary(BinaryWriter writer, object value)
-                => writer.Write((bool)value);
-        }
-
-        private class Int16Converter : SheetValueConverter
-        {
-            public override string TypeName => "short";
-            public override Type Type { get; } = typeof(short);
-            public override bool HasSeparator => false;
-
-            public override object Convert(object rawValue)
-            {
-                if (rawValue is string s) {
-                    if (s.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) {
-                        return System.Convert.ToInt16(s, 16);
-                    }
-                    return short.Parse(s);
-                }
-                return ((IConvertible)rawValue).ToInt16(null);
-            }
-
-            public override string ReadBinaryExp(string readerVarName)
-                => readerVarName + ".ReadInt16()";
-
-            public override void WriteBinary(BinaryWriter writer, object value)
-                => writer.Write((short)value);
-        }
-
-        private class UInt16Converter : SheetValueConverter
-        {
-            public override string TypeName => "ushort";
-            public override Type Type { get; } = typeof(ushort);
-            public override bool HasSeparator => false;
-
-            public override object Convert(object rawValue)
-            {
-                if (rawValue is string s) {
-                    if (s.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) {
-                        return System.Convert.ToInt16(s, 16);
-                    }
-                    return ushort.Parse(s);
-                }
-                return ((IConvertible)rawValue).ToInt16(null);
-            }
-
-            public override string ReadBinaryExp(string readerVarName)
-                => readerVarName + ".ReadUInt16()";
-
-            public override void WriteBinary(BinaryWriter writer, object value)
-                => writer.Write((ushort)value);
-        }
-
-        private class Int32Converter : SheetValueConverter
-        {
-            public override string TypeName => "int";
-            public override Type Type { get; } = typeof(int);
-            public override bool HasSeparator => false;
-
-            public override object Convert(object rawValue)
-            {
-                if (rawValue is string s) {
-                    if (s.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) {
-                        return System.Convert.ToInt32(s, 16);
-                    }
-                    return int.Parse(s);
-                }
-                return ((IConvertible)rawValue).ToInt32(null);
-            }
-
-            public override string ReadBinaryExp(string readerVarName)
-                => readerVarName + ".ReadInt32()";
-
-            public override void WriteBinary(BinaryWriter writer, object value)
-                => writer.Write((int)value);
-        }
-
-        private class UInt32Converter : SheetValueConverter
-        {
-            public override string TypeName => "uint";
-            public override Type Type { get; } = typeof(uint);
-            public override bool HasSeparator => false;
-
-            public override object Convert(object rawValue)
-            {
-                if (rawValue is string s) {
-                    if (s.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) {
-                        return System.Convert.ToUInt32(s, 16);
-                    }
-                    return uint.Parse(s);
-                }
-                return ((IConvertible)rawValue).ToUInt32(null);
-            }
-
-            public override string ReadBinaryExp(string readerVarName)
-                => readerVarName + ".ReadUInt32()";
-
-            public override void WriteBinary(BinaryWriter writer, object value)
-                => writer.Write((uint)value);
-        }
-
-        private class Int64Converter : SheetValueConverter
-        {
-            public override string TypeName => "long";
-            public override Type Type { get; } = typeof(long);
-            public override bool HasSeparator => false;
-
-            public override object Convert(object rawValue)
-            {
-                if (rawValue is string s) {
-                    if (s.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) {
-                        return System.Convert.ToInt64(s, 16);
-                    }
-                    return long.Parse(s);
-                }
-                return ((IConvertible)rawValue).ToInt64(null);
-            }
-
-            public override string ReadBinaryExp(string readerVarName)
-                => readerVarName + ".ReadInt64()";
-
-            public override void WriteBinary(BinaryWriter writer, object value)
-                => writer.Write((long)value);
-        }
-
-        private class UInt64Converter : SheetValueConverter
-        {
-            public override string TypeName => "ulong";
-            public override Type Type { get; } = typeof(ulong);
-            public override bool HasSeparator => false;
-
-            public override object Convert(object rawValue)
-            {
-                if (rawValue is string s) {
-                    if (s.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) {
-                        return System.Convert.ToUInt64(s, 16);
-                    }
-                    return ulong.Parse(s);
-                }
-                return ((IConvertible)rawValue).ToUInt64(null);
-            }
-
-            public override string ReadBinaryExp(string readerVarName)
-                => readerVarName + ".ReadUInt64()";
-
-            public override void WriteBinary(BinaryWriter writer, object value)
-                => writer.Write((ulong)value);
-        }
-
-        private class SingleConverter : SheetValueConverter
-        {
-            public override string TypeName => "float";
-            public override Type Type { get; } = typeof(float);
-            public override bool HasSeparator => false;
-
-            public override object Convert(object rawValue)
-                => ((IConvertible)rawValue).ToSingle(null);
-
-            public override string ReadBinaryExp(string readerVarName)
-                => readerVarName + ".ReadSingle()";
-
-            public override void WriteBinary(BinaryWriter writer, object value)
-                => writer.Write((float)value);
-        }
-
-        private class DoubleConverter : SheetValueConverter
-        {
-            public override string TypeName => "double";
-            public override Type Type { get; } = typeof(double);
-            public override bool HasSeparator => false;
-
-            public override object Convert(object rawValue)
-                => ((IConvertible)rawValue).ToDouble(null);
-
-            public override string ReadBinaryExp(string readerVarName)
-                => readerVarName + ".ReadDouble()";
-
-            public override void WriteBinary(BinaryWriter writer, object value)
-                => writer.Write((double)value);
-        }
-
-        private class Vector2Converter : SheetValueConverter
-        {
-            public override string TypeName => "UnityEngine.Vector2";
-            public override Type Type { get; } = typeof(Vector2);
-            public override bool IsScalar => false;
-            public override bool HasSeparator => true;
-
-            public override object Convert(object rawValue)
-            {
-                if (!(rawValue is string str)) {
-                    throw new InvalidDataException($"Cannot convert {rawValue} to Vector2, require string");
-                }
-                var segs = str.Split(new[] { Separator ?? "," }, StringSplitOptions.None);
-                if (segs.Length != 2) {
-                    throw new InvalidDataException($"Cannot convert \"{str}\" to Vector2, segments count must be 2");
-                }
-                return new Vector2(float.Parse(segs[0]), float.Parse(segs[1]));
-            }
-
-            public override string ReadBinaryExp(string readerVarName)
-                => "new UnityEngine.Vector2("
-                  + readerVarName + ".ReadSingle(), "
-                  + readerVarName + ".ReadSingle())";
-
-            public override void WriteBinary(BinaryWriter writer, object value)
-            {
-                var vector = (Vector2)value;
-                writer.Write(vector.x);
-                writer.Write(vector.y);
-            }
-        }
-
-        private class Vector3Converter : SheetValueConverter
-        {
-            public override string TypeName => "UnityEngine.Vector3";
-            public override Type Type { get; } = typeof(Vector3);
-            public override bool IsScalar => false;
-            public override bool HasSeparator => true;
-
-            public override object Convert(object rawValue)
-            {
-                if (!(rawValue is string str)) {
-                    throw new InvalidDataException($"Cannot convert {rawValue} to Vector3, require string");
-                }
-                var segs = str.Split(new[] { Separator ?? "," }, StringSplitOptions.None);
-                if (segs.Length != 3) {
-                    throw new InvalidDataException($"Cannot convert \"{str}\" to Vector3, segments count must be 3");
-                }
-                return new Vector3(float.Parse(segs[0]), float.Parse(segs[1]), float.Parse(segs[2]));
-            }
-
-            public override string ReadBinaryExp(string readerVarName)
-                => "new UnityEngine.Vector3("
-                  + readerVarName + ".ReadSingle(), "
-                  + readerVarName + ".ReadSingle(), "
-                  + readerVarName + ".ReadSingle())";
-
-            public override void WriteBinary(BinaryWriter writer, object value)
-            {
-                var vector = (Vector3)value;
-                writer.Write(vector.x);
-                writer.Write(vector.y);
-                writer.Write(vector.z);
-            }
-        }
-
-        private class Vector4Converter : SheetValueConverter
-        {
-            public override string TypeName => "UnityEngine.Vector4";
-            public override Type Type { get; } = typeof(Vector4);
-            public override bool IsScalar => false;
-            public override bool HasSeparator => true;
-
-            public override object Convert(object rawValue)
-            {
-                if (!(rawValue is string str)) {
-                    throw new InvalidDataException($"Cannot convert {rawValue} to Vector4, require string");
-                }
-                var segs = str.Split(new[] { Separator ?? "," }, StringSplitOptions.None);
-                if (segs.Length != 4) {
-                    throw new InvalidDataException($"Cannot convert \"{str}\" to Vector4, segments count must be 4");
-                }
-                return new Vector4(
-                    float.Parse(segs[0]),
-                    float.Parse(segs[1]),
-                    float.Parse(segs[2]),
-                    float.Parse(segs[3])
-                );
-            }
-
-            public override string ReadBinaryExp(string readerVarName)
-                => "new UnityEngine.Vector4("
-                  + readerVarName + ".ReadSingle(), "
-                  + readerVarName + ".ReadSingle(), "
-                  + readerVarName + ".ReadSingle(), "
-                  + readerVarName + ".ReadSingle())";
-
-            public override void WriteBinary(BinaryWriter writer, object value)
-            {
-                var vector = (Vector4)value;
-                writer.Write(vector.x);
-                writer.Write(vector.y);
-                writer.Write(vector.z);
-                writer.Write(vector.w);
-            }
-        }
-
-        private class ColorConverter : SheetValueConverter
-        {
-            public override string TypeName => "UnityEngine.Color";
-            public override Type Type { get; } = typeof(Color);
-            public override bool IsScalar => false;
-            public override bool HasSeparator => true;
-
-            public override object Convert(object rawValue)
-            {
-                if (!(rawValue is string str)) {
-                    throw new InvalidDataException($"Cannot convert {rawValue} to Color, require string (r, g, b, a)");
-                }
-                var segs = str.Split(new[] { Separator ?? "," }, StringSplitOptions.None);
-                if (segs.Length != 4) {
-                    throw new InvalidDataException(
-                        $"Cannot convert \"{str}\" to Color, segments count must be 4 (r, g, b, a)");
-                }
-                return new Color(
-                    float.Parse(segs[0]),
-                    float.Parse(segs[1]),
-                    float.Parse(segs[2]),
-                    float.Parse(segs[3])
-                );
-            }
-
-            public override string ReadBinaryExp(string readerVarName)
-                => "new UnityEngine.Color("
-                  + readerVarName + ".ReadSingle(), "
-                  + readerVarName + ".ReadSingle(), "
-                  + readerVarName + ".ReadSingle(), "
-                  + readerVarName + ".ReadSingle())";
-
-            public override void WriteBinary(BinaryWriter writer, object value)
-            {
-                var color = (Color)value;
-                writer.Write(color.r);
-                writer.Write(color.g);
-                writer.Write(color.b);
-                writer.Write(color.a);
-            }
-        }
-
-        private class Color32Converter : SheetValueConverter
-        {
-            public override string TypeName => "UnityEngine.Color32";
-            public override Type Type { get; } = typeof(Color32);
-            public override bool IsScalar => false;
-            public override bool HasSeparator => true;
-
-            public override object Convert(object rawValue)
-            {
-                if (!(rawValue is string str)) {
-                    throw new InvalidDataException(
-                        $"Cannot convert {rawValue} to Color32, require string (r, g, b, a)");
-                }
-                var segs = str.Split(new[] { Separator ?? "," }, StringSplitOptions.None);
-                if (segs.Length != 4) {
-                    throw new InvalidDataException(
-                        $"Cannot convert \"{str}\" to Color32, segments count must be 4 (r, g, b, a)");
-                }
-                return new Color32(byte.Parse(segs[0]), byte.Parse(segs[1]), byte.Parse(segs[2]), byte.Parse(segs[3]));
-            }
-
-            public override string ReadBinaryExp(string readerVarName)
-                => "new UnityEngine.Color32("
-                  + readerVarName + ".ReadByte(), "
-                  + readerVarName + ".ReadByte(), "
-                  + readerVarName + ".ReadByte(), "
-                  + readerVarName + ".ReadByte())";
-
-            public override void WriteBinary(BinaryWriter writer, object value)
-            {
-                var color = (Color32)value;
-                writer.Write(color.r);
-                writer.Write(color.g);
-                writer.Write(color.b);
-                writer.Write(color.a);
-            }
-        }
-
-        private class StringConverter : SheetValueConverter
-        {
-            public override string TypeName => "string";
-            public override Type Type { get; } = typeof(string);
-            public override bool HasSeparator => false;
-
-            public override object Convert(object rawValue)
-                => rawValue?.ToString();
-
-            public override string ReadBinaryExp(string readerVarName)
-                => readerVarName + ".ReadBoolean() ? " + readerVarName + ".ReadString() : null";
-
-            public override void WriteBinary(BinaryWriter writer, object value)
-            {
-                var s = (string)value;
-                if (s != null) {
-                    writer.Write(true);
-                    writer.Write(s);
-                }
-                else {
-                    writer.Write(false);
-                }
-            }
-        }
 
         private class NullableWrappedConverter : SheetValueConverter
         {
@@ -526,8 +117,6 @@ namespace Untitled.ConfigDataBuilder.Editor
             public override bool IsCollection => true;
             public override bool CanBeKey => false;
 
-            public bool IgnoreEmpty { get; set; }
-
             private readonly SheetValueConverter _converter;
 
             public ArrayWrappedConverter(SheetValueConverter converter)
@@ -549,9 +138,6 @@ namespace Untitled.ConfigDataBuilder.Editor
                     var list = new List<object>();
                     foreach (var seg in segs)
                     {
-                        if (IgnoreEmpty && string.IsNullOrWhiteSpace(seg)) {
-                            continue;
-                        }
                         list.Add(_converter.Convert(seg.Trim()));
                     }
                     var result = Array.CreateInstance(_converter.Type, list.Count);
@@ -716,7 +302,7 @@ namespace Untitled.ConfigDataBuilder.Editor
             }
         }
 
-        private sealed class CustomTypeConverter<T> : SheetValueConverter
+        private sealed class WrappedConverter<T> : SheetValueConverter
         {
             private readonly IConfigValueConverter<T> _innerConverter;
 
@@ -724,11 +310,24 @@ namespace Untitled.ConfigDataBuilder.Editor
 
             public override Type Type { get; }
 
-            public override bool HasSeparator => false;
+            public override bool HasSeparator => _innerConverter is IMultiSegConverter;
+
+            private string _separator;
+            public override string Separator
+            {
+                get => _separator;
+                set
+                {
+                    _separator = value;
+                    if (_innerConverter is IMultiSegConverter multiSeg) {
+                        multiSeg.Separator = value;
+                    }
+                }
+            }
 
             public override bool IsScalar => _innerConverter.IsScalar;
 
-            public CustomTypeConverter(IConfigValueConverter<T> innerConverter)
+            public WrappedConverter(IConfigValueConverter<T> innerConverter)
             {
                 _innerConverter = innerConverter;
                 Type = typeof(T);
@@ -742,7 +341,7 @@ namespace Untitled.ConfigDataBuilder.Editor
 
             public override string ReadBinaryExp(string readerVarName)
             {
-                return $"ConfigDataManager.{GetCustomConverterVariableNameForType(TypeName)}.ReadFrom({readerVarName})";
+                return $"ConfigDataManager.{GetConverterVariableNameForType(TypeName)}.ReadFrom({readerVarName})";
             }
 
             public override void WriteBinary(BinaryWriter writer, object value)
@@ -752,36 +351,47 @@ namespace Untitled.ConfigDataBuilder.Editor
 
             public override string ToStringExp(string varName)
             {
-                return $"ConfigDataManager.{GetCustomConverterVariableNameForType(TypeName)}.ToString({varName})";
+                return $"ConfigDataManager.{GetConverterVariableNameForType(TypeName)}.ToString({varName})";
             }
         }
 
         private class SheetValueConverterCollection : ISheetValueConverterCollection
         {
-            private readonly Dictionary<string, SheetValueConverter> _converters = new Dictionary<string, SheetValueConverter> {
-                ["bool"] = new BoolConverter(),
-                ["short"] = new Int16Converter(),
-                ["ushort"] = new UInt16Converter(),
-                ["int"] = new Int32Converter(),
-                ["uint"] = new UInt32Converter(),
-                ["long"] = new Int64Converter(),
-                ["ulong"] = new UInt64Converter(),
-                ["float"] = new SingleConverter(),
-                ["double"] = new DoubleConverter(),
-                ["Vector2"] = new Vector2Converter(),
-                ["UnityEngine.Vector2"] = new Vector2Converter(),
-                ["Vector3"] = new Vector3Converter(),
-                ["UnityEngine.Vector3"] = new Vector3Converter(),
-                ["Vector4"] = new Vector4Converter(),
-                ["UnityEngine.Vector4"] = new Vector4Converter(),
-                ["Color"] = new ColorConverter(),
-                ["UnityEngine.Color"] = new ColorConverter(),
-                ["Color32"] = new Color32Converter(),
-                ["UnityEngine.Color32"] = new Color32Converter(),
-                ["string"] = new StringConverter(),
+            private class BasicConverterInfo
+            {
+                public SheetValueConverter Converter { get; }
+                public Type Type { get; }
+                public Type ConverterType { get; }
+                public string[] Alias { get; }
+
+                private BasicConverterInfo(SheetValueConverter converter, Type type, Type converterType, string[] alias)
+                    => (Converter, Type, ConverterType, Alias) = (converter, type, converterType, alias);
+
+                public static BasicConverterInfo Create<T>(IConfigValueConverter<T> converter, params string[] alias)
+                    => new BasicConverterInfo(new WrappedConverter<T>(converter), typeof(T), converter.GetType(), alias);
+            }
+
+            private static readonly BasicConverterInfo[] BasicConverterInfos = {
+                BasicConverterInfo.Create(new BoolConverter(), "bool"),
+                BasicConverterInfo.Create(new Int16Converter(), "short"),
+                BasicConverterInfo.Create(new UInt16Converter(), "ushort"),
+                BasicConverterInfo.Create(new Int32Converter(), "int"),
+                BasicConverterInfo.Create(new UInt32Converter(), "uint"),
+                BasicConverterInfo.Create(new Int64Converter(), "long"),
+                BasicConverterInfo.Create(new UInt64Converter(), "ulong"),
+                BasicConverterInfo.Create(new SingleConverter(), "float"),
+                BasicConverterInfo.Create(new DoubleConverter(), "double"),
+                BasicConverterInfo.Create(new Vector2Converter(), "vector2", "float2"),
+                BasicConverterInfo.Create(new Vector3Converter(), "vector3", "float3"),
+                BasicConverterInfo.Create(new Vector4Converter(), "vector4", "float4"),
+                BasicConverterInfo.Create(new ColorConverter(), "color"),
+                BasicConverterInfo.Create(new Color32Converter(), "color32"),
+                BasicConverterInfo.Create(new StringConverter(), "string"),
             };
 
-            private readonly Dictionary<string, CustomConverterInfo> _customConverterInfoTable = new Dictionary<string, CustomConverterInfo>();
+            private readonly Dictionary<string, SheetValueConverter> _converters = new Dictionary<string, SheetValueConverter>();
+
+            private readonly Dictionary<Type, ConverterInfo> _converterInfoTable = new Dictionary<Type, ConverterInfo>();
 
             private void LoadAssembly(Assembly assembly)
             {
@@ -809,7 +419,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                             Debug.LogError($"Custom converter '{converterTypeAttr.Type.FullName}' does not have a parameterless constructor");
                         }
                         var converter = (SheetValueConverter)Activator.CreateInstance(
-                            typeof(CustomTypeConverter<>).MakeGenericType(type),
+                            typeof(WrappedConverter<>).MakeGenericType(type),
                             Activator.CreateInstance(converterTypeAttr.Type));
 
                         if (!_converters.ContainsKey(fullName)) {
@@ -818,8 +428,8 @@ namespace Untitled.ConfigDataBuilder.Editor
                         if (!_converters.ContainsKey(type.Name)) {
                             _converters.Add(type.Name, converter);
                         }
-                        _customConverterInfoTable.Add(fullName,
-                            new CustomConverterInfo(fullName, converterTypeAttr.Type.FullName, GetCustomConverterVariableNameForType(fullName)));
+                        _converterInfoTable.Add(converter.Type,
+                            new ConverterInfo(fullName, converterTypeAttr.Type.FullName, GetConverterVariableNameForType(fullName)));
                     }
                     else if (type.IsEnum) {
                         var converter = new EnumConverter(type);
@@ -833,9 +443,9 @@ namespace Untitled.ConfigDataBuilder.Editor
                 }
             }
 
-            public IEnumerable<CustomConverterInfo> GetCustomConverterInfo()
+            public IEnumerable<ConverterInfo> EnumerateConverterInfo()
             {
-                return _customConverterInfoTable.Values;
+                return _converterInfoTable.Values;
             }
 
             public SheetValueConverter GetConverter(string typeName)
@@ -865,6 +475,18 @@ namespace Untitled.ConfigDataBuilder.Editor
 
             public SheetValueConverterCollection()
             {
+                foreach (var converterInfo in BasicConverterInfos) {
+                    _converters.Add(converterInfo.Type.Name, converterInfo.Converter);
+                    _converters.Add(converterInfo.Type.FullName!, converterInfo.Converter);
+                    foreach (var alias in converterInfo.Alias) {
+                        _converters.Add(alias, converterInfo.Converter);
+                    }
+                    _converterInfoTable.Add(converterInfo.Type, 
+                        new ConverterInfo(converterInfo.Type.FullName,
+                        converterInfo.ConverterType.FullName,
+                        GetConverterVariableNameForType(converterInfo.Type.FullName)));
+                }
+                
                 var settings = ConfigDataBuilderSettings.GetOrCreateSettings();
                 var assemblies = AppDomain.CurrentDomain.GetAssemblies()
                     .Where(a => !a.IsDynamic)

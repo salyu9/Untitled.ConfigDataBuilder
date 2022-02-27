@@ -11,7 +11,7 @@ namespace Untitled.ConfigDataBuilder.Editor
             _reader = ExcelReaderFactory.CreateReader(File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite));
         }
 
-        public string Name => _reader.Name;
+        public string SheetName => _reader.Name;
 
         public bool ReadNextSheet() => _reader.NextResult();
 

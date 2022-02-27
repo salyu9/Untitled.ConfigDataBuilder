@@ -4,7 +4,7 @@ namespace Untitled.ConfigDataBuilder.Editor
 {
     internal interface ISheetReader : IDisposable
     {
-        public string Name { get; }
+        public string SheetName { get; }
 
         public bool ReadNextSheet();
 

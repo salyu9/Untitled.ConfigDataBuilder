@@ -2,6 +2,11 @@ using System.IO;
 
 namespace Untitled.ConfigDataBuilder.Base
 {
+    public interface IMultiSegConverter
+    {
+        string Separator { get; set; }
+    }
+
     public interface IConfigValueConverter<T>
     {
         /// <summary>
