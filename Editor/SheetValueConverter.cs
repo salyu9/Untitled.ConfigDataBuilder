@@ -425,7 +425,7 @@ namespace Untitled.ConfigDataBuilder.Editor
 
             public object ParseEscaped(string rawValue)
             {
-                return _innerConverter.Parse(Helper.UnescapeString(rawValue));
+                return _innerConverter.Parse(rawValue != null ? Helper.UnescapeString(rawValue) : null);
             }
 
             public string ReadBinaryExp(string readerVarName)

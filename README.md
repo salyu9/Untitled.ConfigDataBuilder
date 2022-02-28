@@ -22,7 +22,7 @@ You can install this package via OpenUPM (recommended) or git URL.
 
 - via OpenUPM: Install this [OpenUPM Package](https://openupm.com/packages/com.github.salyu9.untitledconfigdatabuilder/)
 
-- via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder.git#v0.1.5` to package manager.
+- via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder.git#v0.1.6` to package manager.
 
 ## Configuration
 
@@ -36,9 +36,9 @@ Use "Project Settings > Config Data Builder" to modify config building settings.
 
 - Data output: The path (relative to Assets/Resources) of the folder which will contain exported data.
 
-- Localization exporter type: If sheet data contains localizable data, a user script class can be set to export localization source data, see #Usage section for more details.
+- Localization exporter type: If sheet data contains localizable data, a user script class can be set to export localization source data, see [Usage](#usage) section for more details.
 
-- Custom Type Assemblies: Config data can contain custom types from user scripts. To use custom types, add the names of the assemblies that contains these types at here. See #Usage for more details about custom types.
+- Custom Type Assemblies: Config data can contain custom types from user scripts. To use custom types, add the names of the assemblies that contains these types at here. See [Custom Types](#custom-types) for more details about custom types.
 
 - Importing assemblies: Extra assemblies that the compiled assembly should reference. Custom type assemblies will be auto imported.
 
@@ -135,79 +135,94 @@ Basic types supported are:
 
 - Basic C# types: `bool`, `short`, `ushort`, `int`, `uint`, `long`, `ulong`, `float`, `double`, `string`.
 
-- Unity types: `Vector2`, `Vector3`, `Vector4`, `Color`, `Color32`.
+- Unity types: `Vector2`, `Vector3`, `Vector4`, `Color`, `Color32`. Alias for these types are available: `Vector3` = `vector3` = `float3`. Write `2, 5, 3` in data for `Vector3`.
 
-- Arrays of scalar types and strings are supported, such as `float[]`. Arrays of vectors or colors are not supported. Just use `float[]` in the type row.
+- Arrays of are supported, such as `float[]`. Use `float[]` in the type row, and write `5, 6, 7` in data.
 
-- Dictionaries are supported if their key type and value type are both scalar types and strings(and not vectors or colors), such as `IDictionary<string, int>`, Use `{string: int}` in the type row, and write `a: 1, b: 2` in data.
+- Dictionaries are supported such as `IDictionary<string, int>`, Use `{string: int}` in the type row, and write `a: 1, b: 2` in data. Be careful not to use improper types as keys.
 
-- Nullable wrapped scalar type, such as `float?`.
+- Nullable wrapped scalar type, such as `float?`. If data cell is empty or `null`, the value will be `null`.
+
+### Separators
+
+For vectors, colors, arrays, dictionaries or custom multi-segment types, the separators can be specified by flags. See [Flags](#flags) for more detail about specify separators.
+
+The default separators for vectors/colors/arrays are "`,`", And the default separators for dictionary are "`,`" and "`:`" (between a key and a value).
+
+Arrays of arrays (actually jagged arrays) and arrays of vectors/colors will need two separators. Defaults are "`;`" for array and "`,`" for elements. For example: `1, 2, 3; 4, 5; 6` will be `[[1, 2, 3], [4, 5], [6]]`.
+
+Arrays of higher dimensions are supported, but you will need to explicitly specify the separators using flags.
+
+The format of separator flag is `separator:<sep1><sep2><sep3>...`. For example, "`separator:$;,`" can be used to specify separators for `int[][][]`, the data should be in format of `1, 2, 3; 4, 7 $ 8, 7; 6; 3`, which donates `[[[1, 2, 3], [4, 7]], [[8, 7], [6], [3]]]`.
+
+For dictionaries, `separator:<sep1><sep2><sep3>...` will use `<sep1>` as dictionary element separator, use `<sep2>` as key-value pair separator, and use `<sep3>...` for key type and value type separators. (Better not to use multi-segment types as keys and values).
 
 ### Custom types
 
-You can use your custom types in config data. To do so, you need define custom types in a specific assembly (via assembly definitions, see Unity doc for details) and add this assembly into 'Project settings > Config Data Builder > Custom Type Assemblies' settings. This assembly should reference to 'Untitled.ConfigDataBuilder.Base', and define a converter class for each custom type.
+You can use your custom types in config data. To do so, you need define custom types in a specific assembly (via assembly definitions, see [Unity doc](https://docs.unity3d.com/Manual/ScriptCompilationAssemblyDefinitionFiles.html) for details) and add this assembly into 'Project settings > Config Data Builder > Custom Type Assemblies' settings. This assembly should reference to 'Untitled.ConfigDataBuilder.Base', and define a converter class for each custom type.
 
-Example:
+Below is a custom type `MyColor` example. With `MyColor` registered to config builder, you can use HTML color codes in your data cell and treat them as instances of `MyColor` in your code. In sheet data, the type name can be full name `MyCodeNamespace.MyColor` or short name `MyColor` if there's no conflicts.
 
 ```csharp
-// Type you want to use in config data
+using System;
+using System.IO;
+using UnityEngine;
 using Untitled.ConfigDataBuilder.Base;
 
-[ConfigValueConverter(typeof(MyPointConverter))]
-public class MyPoint
+namespace MyCodeNamespace
 {
-    public int X;
-    public int Y;
-
-    public MyPoint(int x = 0, int y = 0)
+    [ConfigValueConverter(typeof(MyColorConverter))]
+    public class MyColor
     {
-        X = x;
-        Y = y;
-    }
-}
+        public Color Color { get; }
 
-// Converter type for MyPoint, must implement IConfigValueConverter<MyPoint>
-public class MyPointConverter : IConfigValueConverter<MyPoint>
-{
-    // Parse MyPoint from config string
-    public MyPoint Parse(string value)
-    {
-        string[] segs = value.Split(',');
-        if (segs.Length != 2)
+        public MyColor(Color color)
         {
-            throw new ArgumentException(
-                $"Cannot parse '{value}' to {nameof(MyPoint)}.");
+            Color = color;
         }
-        return new MyPoint(int.Parse(segs[0]), int.Parse(segs[1]));
+
+        public static implicit operator Color(MyColor myColor) => myColor.Color;
+        public static implicit operator MyColor(Color color) => new MyColor(color);
     }
 
-    // Write MyPoint value to exported config data
-    public void WriteTo(BinaryWriter writer, MyPoint value)
+    // Converter type for MyColor, must implement IConfigValueConverter<MyColor>
+    public class MyColorConverter : IConfigValueConverter<MyColor>
     {
-        writer.Write(value.X);
-        writer.Write(value.Y);
-    }
+        // Parse MyColor from config string
+        public MyColor Parse(string value)
+        {
+            if (ColorUtility.TryParseHtmlString(value, out var color)) {
+                return new MyColor(color);
+            }
+            else {
+                throw new ArgumentException($"Cannot parse '{value}' to {nameof(MyColor)}");
+            }
+        }
 
-    // Read MyPoint value from exported config data
-    public MyPoint ReadFrom(BinaryReader reader)
-    {
-        int x = reader.ReadInt32();
-        int y = reader.ReadInt32();
-        return new MyPoint(x, y);
-    }
+        // Write MyColor value to exported config data
+        public void WriteTo(BinaryWriter writer, MyColor value)
+        {
+            var color32 = (Color32)value.Color;
+            writer.Write(color32.r);
+            writer.Write(color32.g);
+            writer.Write(color32.b);
+        }
 
-    // Get a string that represent the value.
-    // Used in config class' ToString() method.
-    public string ToString(MyPoint value)
-    {
-        return $"<{nameof(MyPoint)} X={value.X}, Y={value.Y}>";
-    }
+        // Read MyColor value from exported config data
+        public MyColor ReadFrom(BinaryReader reader)
+        {
+            var r = reader.ReadByte();
+            var g = reader.ReadByte();
+            var b = reader.ReadByte();
+            return new MyColor(new Color32(r, g, b, 1));
+        }
 
-    // Cannot be used in arrays/dictionaries due to separator conflict,
-    // so IsScalar should return false.
-    public bool IsScalar
-    {
-        get { return false; }
+        // Get a string that represent the value.
+        // Used in config class' ToString() method.
+        public string ToString(MyColor value)
+        {
+            return ColorUtility.ToHtmlStringRGB(value.Color);
+        }
     }
 }
 
@@ -215,9 +230,80 @@ public class MyPointConverter : IConfigValueConverter<MyPoint>
 
 Then you can use it in config data:
 
-![Image](Doc/Images/custom-types.png)
+![Image](Doc/Images/my-color.png)
 
-Custom types cannot be used in arrays or dictionaries if `IsScalar` returns false.
+### Multi-Segment types
+
+If your custom type need a separator, you can make your converter implement `IMultiSegConfigValueConverter` instead.
+
+Below is an example for a vector-like type.
+
+```csharp
+using System;
+using System.IO;
+using Untitled.ConfigDataBuilder.Base;
+
+namespace MyCodeNamespace
+{
+    [ConfigValueConverter(typeof(MyPointConverter))]
+    public class MyPoint
+    {
+        public readonly int X;
+        public readonly int Y;
+
+        public MyPoint(int x = 0, int y = 0)
+        {
+            X = x;
+            Y = y;
+        }
+    }
+
+    // Converter type for MyPoint, must implement IMultiSegConfigValueConverter<MyPoint>
+    public class MyPointConverter : IMultiSegConfigValueConverter<MyPoint>
+    {
+        // Parse MyPoint from config string
+        public MyPoint Parse(string[] segs)
+        {
+            if (segs.Length != 2)
+            {
+                throw new ArgumentException($"Cannot parse '{string.Join(",", segs)}' to {nameof(MyPoint)}.");
+            }
+            return new MyPoint(int.Parse(segs[0]), int.Parse(segs[1]));
+        }
+
+        // Write MyPoint value to exported config data
+        public void WriteTo(BinaryWriter writer, MyPoint value)
+        {
+            writer.Write(value.X);
+            writer.Write(value.Y);
+        }
+
+        // Read MyPoint value from exported config data
+        public MyPoint ReadFrom(BinaryReader reader)
+        {
+            var x = reader.ReadInt32();
+            var y = reader.ReadInt32();
+            return new MyPoint(x, y);
+        }
+
+        // Get a string that represent the value.
+        // Used in config class' ToString() method.
+        public string ToString(MyPoint value)
+        {
+            return $"<{nameof(MyPoint)} X={value.X}, Y={value.Y}>";
+        }
+    }
+}
+
+```
+
+Then you can use it in your sheets:
+
+![Image](Doc/Images/my-point.png)
+
+The default separator for a custom multi-segment type is "`,`". You can assign a deferent separator in the attribute: `[ConfigValueConverter(typeof(MyPointConverter), DefaultSeparator = ';')]`.
+
+This type can still be used in arrays or dictionaries. but be aware of separators. Better explicitly specify separators in flags.
 
 ### Flags
 
@@ -248,15 +334,7 @@ Supported flags are list below.
 
     This property contains special information about each row. Info property will not be compiled into config class nor be exported.
 
-    Currently the only supported `info-type` is `L10n`, which indicates that this property data should be exported as localization source data, see #Localization for more details.
-
-- `ref:<SheetName>.<KeyName>`
-
-    Indicates that this property's value should exists in specified key column of specified sheet. When reimporting config data, rows that missing references will be reported as warnings.
-
-- `elem-ref:<SheetName>.<KeyName>`
-
-    Similar to `ref` but used on array properties, indicates that every element of this property should reference to specified key column.
+    Currently the only supported `info-type` is `L10n`, which indicates that this property data should be exported as localization source data, see [Localization Data](#localization-data) for more details.
 
 - `default:<default-value>`
 
@@ -264,7 +342,7 @@ Supported flags are list below.
 
 - `separator:<separator>`
 
-    Specify the separator used for vector/color/array/dictionary types. Default separator is ','.
+    Specify the separators used for vector/color/array/dictionary or custom multi-segment types.
 
 - `ignore-empty`
 

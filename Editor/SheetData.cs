@@ -214,8 +214,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                         }
                         catch (Exception exc) {
                             throw new InvalidDataException(
-                                $"{path}({sheetName})(row: {rowIndex + 1}, col: {columnInfo.ColIndex + 1}): cannot parse data '{raw ?? "null"}' to {converter.TypeName}: {exc.Message}",
-                                exc);
+                                $"{path}({sheetName})(row: {rowIndex + 1}, col: {columnInfo.ColIndex + 1}): cannot parse  {(raw != null ? "data \'" + raw + "\'" : "null")} to {converter.TypeName}: {exc.Message}");
                         }
                         if (columnInfo.Keys is {} set) {
                             if (set.Contains(result)) {

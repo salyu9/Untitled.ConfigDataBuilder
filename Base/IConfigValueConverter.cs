@@ -23,10 +23,5 @@ namespace Untitled.ConfigDataBuilder.Base
         /// Get a string that represents specified value.
         /// </summary>
         string ToString(T value);
-
-        /// <summary>
-        /// Determines whether this type is scalar (can be used in arrays/dictionaries).
-        /// </summary>
-        bool IsScalar { get; }
     }
 }
