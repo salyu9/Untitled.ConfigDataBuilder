@@ -41,7 +41,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                     continue;
                 }
                 if (set.Add(filename)) {
-                    yield return file;
+                    yield return file.Replace("\\", "/");
                 }
             }
         }
@@ -92,7 +92,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                 if (!Directory.Exists(path)) Directory.CreateDirectory(path);
 
                 var converters = SheetValueConverter.GetSheetValueConverters();
-                var sheets = SheetData.ReadAllSheets(converters, EnumerateSheetFiles());
+                var sheets = SheetData.ReadAllHeaders(converters, EnumerateSheetFiles());
                 var classNames = new List<string>();
                 foreach (var sheet in sheets) {
                     classNames.Add(sheet.ClassName);
@@ -615,10 +615,6 @@ namespace Untitled.ConfigDataBuilder.Editor
                         continue;
                     }
                     var keyCol = sheet.Keys[0];
-                    if (!keyCol.Converter.IsScalar) {
-                        Debug.LogError($"{sheet.ClassName} has non-scalar key and cannot be L10n source");
-                        continue;
-                    }
 
                     var l10nRows = new List<L10nRow>();
 

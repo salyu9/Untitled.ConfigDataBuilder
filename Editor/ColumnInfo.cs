@@ -1,10 +1,12 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace Untitled.ConfigDataBuilder.Editor
 {
     /// <summary>
     /// Information about a column in sheet data.
     /// </summary>
+    [DebuggerDisplay("ColumnInfo ({ColIndex}): {Name}")]
     public class ColumnInfo
     {
         /// <summary>
@@ -29,10 +31,8 @@ namespace Untitled.ConfigDataBuilder.Editor
 
         public string ConfigTypeName { get; set; }
 
-        internal SheetValueConverter Converter { get; set; }
+        internal ISheetValueConverter Converter { get; set; }
 
         public object DefaultValue { get; set; }
-
-        public bool AllowEscape { get; set; }
     }
 }

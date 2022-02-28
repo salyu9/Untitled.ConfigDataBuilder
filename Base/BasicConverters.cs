@@ -232,8 +232,8 @@ namespace Untitled.ConfigDataBuilder.Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector2 ReadFrom(BinaryReader reader)
         {
-            var x = reader.ReadInt32();
-            var y = reader.ReadInt32();
+            var x = reader.ReadSingle();
+            var y = reader.ReadSingle();
             return new Vector2(x, y);
         }
 
@@ -265,9 +265,9 @@ namespace Untitled.ConfigDataBuilder.Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector3 ReadFrom(BinaryReader reader)
         {
-            var x = reader.ReadInt32();
-            var y = reader.ReadInt32();
-            var z = reader.ReadInt32();
+            var x = reader.ReadSingle();
+            var y = reader.ReadSingle();
+            var z = reader.ReadSingle();
             return new Vector3(x, y, z);
         }
 
@@ -300,10 +300,10 @@ namespace Untitled.ConfigDataBuilder.Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ReadFrom(BinaryReader reader)
         {
-            var x = reader.ReadInt32();
-            var y = reader.ReadInt32();
-            var z = reader.ReadInt32();
-            var w = reader.ReadInt32();
+            var x = reader.ReadSingle();
+            var y = reader.ReadSingle();
+            var z = reader.ReadSingle();
+            var w = reader.ReadSingle();
             return new Vector4(x, y, z, w);
         }
 

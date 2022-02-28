@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using UnityEngine;
 
@@ -24,81 +23,6 @@ namespace Untitled.ConfigDataBuilder.Editor
             public string SheetName { get; set; }
             public List<ColumnInfo> Header { get; set; }
             public List<object[]> Rows { get; set; }
-        }
-
-        private static char GetUnescapedCharFor(char c)
-        {
-            return c switch {
-                'a' => '\a',
-                'b' => '\b',
-                't' => '\t',
-                'n' => '\n',
-                'v' => '\v',
-                'f' => '\f',
-                'r' => '\r',
-                'e' => (char)27,
-                _   => c
-            };
-        }
-
-        private static string UnescapeString(string input)
-        {
-            var i = 0;
-            var len = input.Length;
-            var escaping = false;
-            var builder = new StringBuilder();
-            while (i < len) {
-                var c = input[i];
-
-                if (escaping) {
-                    builder.Append(GetUnescapedCharFor(c));
-                    escaping = false;
-                }
-                else if (c == '\\') {
-                    escaping = true;
-                }
-                else {
-                    builder.Append(c);
-                }
-                ++i;
-            }
-            if (escaping) {
-                throw new ArgumentException($"Invalid escaping end of '{input}'");
-            }
-            return builder.ToString();
-        }
-
-        private static IEnumerable<string> EscapableSplitString(string input, char separator)
-        {
-            var i = 0;
-            var len = input.Length;
-            var escaping = false;
-            var builder = new StringBuilder();
-            while (i < len) {
-                var c = input[i];
-
-                if (escaping) {
-                    builder.Append(GetUnescapedCharFor(c));
-                    escaping = false;
-                }
-                else if (c == '\\') {
-                    escaping = true;
-                }
-                else if (c == separator) {
-                    yield return builder.ToString();
-                    builder = new StringBuilder();
-                }
-                else {
-                    builder.Append(c);
-                }
-                ++i;
-            }
-            if (escaping) {
-                throw new ArgumentException($"Invalid escaping end of '{input}'");
-            }
-            if (builder.Length > 0) {
-                yield return builder.ToString();
-            }
         }
 
         private static InternalSheetData ReadSheet(ISheetValueConverterCollection converters, ISheetReader reader, string path, bool headerOnly)
@@ -148,7 +72,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                 else if (!colInfo.IsIgnored) {
                     colInfo.ConfigTypeName = reader.GetValue(colIndex).ToString();
                     try {
-                        colInfo.Converter = converters.GetConverter(colInfo.ConfigTypeName);
+                        colInfo.Converter = converters.CreateConverter(colInfo.ConfigTypeName);
                     }
                     catch (Exception exc) {
                         throw new InvalidDataException($"{path}({sheetName}): Cannot create converter for type {colInfo.Name}", exc);
@@ -162,93 +86,96 @@ namespace Untitled.ConfigDataBuilder.Editor
             }
             for (var colIndex = 0; colIndex < reader.CellCount; ++colIndex) {
                 var colInfo = header[colIndex];
-                var colDebugName = $"{path}({sheetName}) '{colInfo.Name}'";
-                if (colInfo.IsIgnored || reader.IsNull(colIndex)) {
+                if (colInfo.IsIgnored) {
                     continue;
                 }
+                var colDebugName = $"{path}({sheetName}) '{colInfo.Name}'";
                 var flagKey = false;
                 var flagIgnore = false;
                 var flagDefault = false;
                 var flagSeparator = false;
-                foreach (var flag in EscapableSplitString(reader.GetValue(colIndex).ToString(), '|')) {
-                    var trimmed = flag.Trim();
-                    if (string.IsNullOrEmpty(trimmed)) {
-                        continue;
-                    }
-                    if (string.Equals(trimmed, "key", StringComparison.OrdinalIgnoreCase)) {
-                        if (flagKey) {
-                            throw new InvalidDataException($"{colDebugName} has duplicated 'key' flag");
+                if (!reader.IsNull(colIndex)) {
+                    foreach (var flag in Helper.SplitAndUnescapeString(reader.GetValue(colIndex).ToString(), '|')) {
+                        var trimmed = flag.Trim();
+                        if (string.IsNullOrEmpty(trimmed)) {
+                            continue;
                         }
-                        flagKey = true;
-                        if (!colInfo.Converter.CanBeKey) {
-                            throw new InvalidDataException($"{colDebugName} has invalid key type '{colInfo.Converter.Type.Name}'");
+                        if (string.Equals(trimmed, "key", StringComparison.OrdinalIgnoreCase)) {
+                            if (flagKey) {
+                                throw new InvalidDataException($"{colDebugName} has duplicated 'key' flag");
+                            }
+                            flagKey = true;
+                            colInfo.IsKey = true;
+                            colInfo.Keys = new HashSet<object>();
                         }
-                        colInfo.IsKey = true;
-                        colInfo.Keys = new HashSet<object>();
-                    }
-                    else if (string.Equals(trimmed, "ignore", StringComparison.OrdinalIgnoreCase)) {
-                        if (flagIgnore) {
-                            throw new InvalidDataException($"{colDebugName} has duplicated 'ignore' flag");
+                        else if (string.Equals(trimmed, "ignore", StringComparison.OrdinalIgnoreCase)) {
+                            if (flagIgnore) {
+                                throw new InvalidDataException($"{colDebugName} has duplicated 'ignore' flag");
+                            }
+                            flagIgnore = true;
+                            colInfo.IsIgnored = true;
                         }
-                        flagIgnore = true;
-                        colInfo.IsIgnored = true;
-                    }
-                    else if (trimmed.StartsWith("info:", StringComparison.OrdinalIgnoreCase)) {
-                        var rest = trimmed.Substring("info:".Length);
-                        if (!Enum.TryParse<InfoType>(rest, true, out var value)) {
-                            throw new InvalidDataException($"{colDebugName} has invalid info type '{rest}'");
+                        else if (trimmed.StartsWith("info:", StringComparison.OrdinalIgnoreCase)) {
+                            var rest = trimmed.Substring("info:".Length);
+                            if (!Enum.TryParse<InfoType>(rest, true, out var value)) {
+                                throw new InvalidDataException($"{colDebugName} has invalid info type '{rest}'");
+                            }
+                            colInfo.Info |= value;
                         }
-                        colInfo.Info |= value;
-                    }
-                    else if (trimmed.StartsWith("ref:", StringComparison.OrdinalIgnoreCase)) {
-                        Debug.LogWarning($"Deprecated 'ref' flag for {colDebugName}");
-                    }
-                    else if (trimmed.StartsWith("elem-ref:", StringComparison.OrdinalIgnoreCase)) {
-                        Debug.LogWarning($"Deprecated 'elem-ref' flag for {colDebugName}");
-                    }
-                    else if (trimmed.StartsWith("default:", StringComparison.OrdinalIgnoreCase)) {
-                        if (flagDefault) {
-                            throw new InvalidDataException($"{colDebugName} has duplicated 'default' flag");
+                        else if (trimmed.StartsWith("ref:", StringComparison.OrdinalIgnoreCase)) {
+                            Debug.LogWarning($"Deprecated 'ref' flag for {colDebugName}");
                         }
-                        flagDefault = true;
-                        var rest = trimmed.Substring("default:".Length);
-                        try {
-                            colInfo.DefaultValue = colInfo.Converter.Convert(rest);
+                        else if (trimmed.StartsWith("elem-ref:", StringComparison.OrdinalIgnoreCase)) {
+                            Debug.LogWarning($"Deprecated 'elem-ref' flag for {colDebugName}");
                         }
-                        catch (Exception exc) {
-                            throw new InvalidDataException(
-                                $"{colDebugName} default value ({rest}) cannot be converted to {colInfo.Converter.TypeName}: {exc.Message}", exc);
+                        else if (trimmed.StartsWith("default:", StringComparison.OrdinalIgnoreCase)) {
+                            if (flagDefault) {
+                                throw new InvalidDataException($"{colDebugName} has duplicated 'default' flag");
+                            }
+                            flagDefault = true;
+                            var rest = trimmed.Substring("default:".Length);
+                            try {
+                                colInfo.DefaultValue = colInfo.Converter.ParseEscaped(rest);
+                            }
+                            catch (Exception exc) {
+                                throw new InvalidDataException(
+                                    $"{colDebugName} default value ({rest}) cannot be converted to {colInfo.Converter.TypeName}: {exc.Message}", exc);
+                            }
+                        }
+                        else if (trimmed.StartsWith("separator:", StringComparison.OrdinalIgnoreCase)) {
+                            if (flagSeparator) {
+                                throw new InvalidDataException($"{colDebugName} has duplicated 'separator' flag");
+                            }
+                            flagSeparator = true;
+                            var rest = trimmed.Substring("separator:".Length);
+
+                            if (rest.Length != colInfo.Converter.SeparatorLevel) {
+                                Debug.LogWarning(
+                                    $"{colDebugName} separator size does not match the separator-level of '{colInfo.Converter.TypeName}' (level = {colInfo.Converter.SeparatorLevel})");
+                            }
+                            colInfo.Converter.Separators = rest;
+                        }
+                        else {
+                            throw new InvalidDataException($"{colDebugName} has unknown flag '{trimmed}'");
                         }
                     }
-                    else if (trimmed.StartsWith("separator:", StringComparison.OrdinalIgnoreCase)) {
-                        if (flagSeparator) {
-                            throw new InvalidDataException($"{colDebugName} has duplicated 'separator' flag");
-                        }
-                        if (!colInfo.Converter.HasSeparator) {
-                            throw new InvalidDataException($"{colDebugName} invalid 'separator' flag for type '{colInfo.Converter.TypeName}'");
-                        }
-                        flagSeparator = true;
-                        var rest = trimmed.Substring("separator:".Length);
-                        colInfo.Converter.Separator = rest;
+                    if (colInfo.IsKey && colInfo.Info != InfoType.None) {
+                        throw new InvalidDataException($"{colDebugName} is key AND info.");
                     }
-                    else if (trimmed.Equals("escape", StringComparison.OrdinalIgnoreCase)) {
-                        colInfo.AllowEscape = true;
+                    if (colInfo.IsKey && colInfo.IsIgnored) {
+                        throw new InvalidDataException($"{colDebugName} is key AND ignored.");
                     }
-                    else {
-                        throw new InvalidDataException($"{colDebugName} has unknown flag '{trimmed}'");
+                    if (colInfo.Info != InfoType.None && colInfo.IsIgnored) {
+                        throw new InvalidDataException($"{colDebugName} is info AND ignored.");
                     }
                 }
-                if (colInfo.IsKey && colInfo.Info != InfoType.None) {
-                    throw new InvalidDataException($"{colDebugName} is key AND info");
-                }
-                if (colInfo.IsKey && colInfo.IsIgnored) {
-                    throw new InvalidDataException($"{colDebugName} is key AND ignore");
-                }
-                if (colInfo.Info != InfoType.None && colInfo.IsIgnored) {
-                    throw new InvalidDataException($"{colDebugName} is info AND ignore");
+                if (!flagSeparator) {
+                    if (!colInfo.Converter.SetAutoSeparators()) {
+                        throw new InvalidDataException($"{colDebugName} need to specify separators.");
+                    }
                 }
             }
-            
+
             // Densify
             header.RemoveAll(info => info.IsIgnored);
 
@@ -279,18 +206,16 @@ namespace Untitled.ConfigDataBuilder.Editor
                     }
                     else {
                         var raw = reader.IsNull(columnInfo.ColIndex) ? null : reader.GetValue(columnInfo.ColIndex).ToString();
-                        if (columnInfo.AllowEscape) {
-                            raw = UnescapeString(raw);
-                        }
                         var converter = columnInfo.Converter;
                         object result;
                         try {
-                            result = converter.Convert(raw);
+                            result = converter.ParseEscaped(raw);
                             System.Diagnostics.Debug.Assert(result == null || result.GetType() == converter.Type);
                         }
                         catch (Exception exc) {
                             throw new InvalidDataException(
-                                $"{path}({sheetName})(row: {rowIndex + 1}, col: {columnInfo.ColIndex + 1}): cannot parse data '{raw ?? "null"}' to {converter.TypeName}: {exc.Message}");
+                                $"{path}({sheetName})(row: {rowIndex + 1}, col: {columnInfo.ColIndex + 1}): cannot parse data '{raw ?? "null"}' to {converter.TypeName}: {exc.Message}",
+                                exc);
                         }
                         if (columnInfo.Keys is {} set) {
                             if (set.Contains(result)) {
