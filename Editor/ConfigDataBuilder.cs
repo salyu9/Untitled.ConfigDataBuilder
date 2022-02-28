@@ -573,63 +573,6 @@ namespace Untitled.ConfigDataBuilder.Editor
             var sheetsDict = SheetData.ReadAllSheets(converters, EnumerateSheetFiles())
                 .ToDictionary(sheet => sheet.MergedSheetName);
 
-            // xref check
-            foreach (var sheet in sheetsDict.Values) {
-                for (var i = 0; i < sheet.Header.Length; ++i) {
-                    var col = sheet.Header[i];
-                    var refInfo = col.Ref;
-                    if (refInfo == null) {
-                        continue;
-                    }
-                    if (!sheetsDict.TryGetValue(refInfo.TableName, out var refSheet)) {
-                        Debug.LogError(
-                            $"Sheet {sheet.MergedSheetName} column '{col.Name}' refering sheet '{refInfo.TableName}' not exists");
-                        continue;
-                    }
-                    var refCol = refSheet.Header.FirstOrDefault(c => c.Name == refInfo.ColumnName);
-                    if (refCol == null) {
-                        Debug.LogError(
-                            $"Sheet {sheet.MergedSheetName} column '{col.Name}' refering column '{refInfo.TableName}.{refInfo.ColumnName}' not exists");
-                        continue;
-                    }
-                    if (refCol.Keys == null) {
-                        Debug.LogError(
-                            $"Sheet {sheet.MergedSheetName} column '{col.Name}' refering column '{refInfo.TableName}.{refInfo.ColumnName}' is not key");
-                        continue;
-                    }
-                    foreach (var row in sheet.Rows) {
-                        var cell = row[i];
-                        if (cell == null) {
-                            continue;
-                        }
-                        if (refInfo.IsElem) {
-                            var array = (Array)row[i];
-                            foreach (var elem in array) {
-                                if (elem == null) {
-                                    continue;
-                                }
-                                var trimmed = refInfo.CanHavePlus && elem is string s && s.Last() == '+'
-                                    ? s.Substring(0, s.Length - 1)
-                                    : elem;
-                                if (!refCol.Keys.Contains(trimmed)) {
-                                    Debug.LogError(
-                                        $"Sheet {sheet.MergedSheetName} column '{col.Name}' contains value '{elem}' that are not in referenced column '{refInfo.TableName}.{refInfo.ColumnName}'");
-                                }
-                            }
-                        }
-                        else {
-                            var trimmed = refInfo.CanHavePlus && cell is string s && s.Last() == '+'
-                                ? s.Substring(0, s.Length - 1)
-                                : cell;
-                            if (!refCol.Keys.Contains(trimmed)) {
-                                Debug.LogError(
-                                    $"Sheet {sheet.MergedSheetName} column '{col.Name}' contains value '{cell}' that are not in referenced column '{refInfo.TableName}.{refInfo.ColumnName}'");
-                            }
-                        }
-                    }
-                }
-            }
-
             // generate output binary data
             foreach (var sheet in sheetsDict.Values) {
                 var dataAssetPath = dataOutputPath + sheet.ClassName + ".bytes";

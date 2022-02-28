@@ -4,20 +4,13 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using UnityEngine;
 
 namespace Untitled.ConfigDataBuilder.Editor
 {
     internal class SheetData
     {
         private static readonly Regex IdReg = new Regex(@"^[A-Z][A-Za-z0-9]*$", RegexOptions.Compiled);
-
-        internal class RefInfo
-        {
-            public bool IsElem { get; set; }
-            public string TableName { get; set; }
-            public string ColumnName { get; set; }
-            public bool CanHavePlus { get; set; }
-        }
 
         public string MergedSheetName { get; private set; }
         public string ClassName { get; private set; }
@@ -88,12 +81,12 @@ namespace Untitled.ConfigDataBuilder.Editor
                     builder.Append(GetUnescapedCharFor(c));
                     escaping = false;
                 }
+                else if (c == '\\') {
+                    escaping = true;
+                }
                 else if (c == separator) {
                     yield return builder.ToString();
                     builder = new StringBuilder();
-                }
-                else if (c == '\\') {
-                    escaping = true;
                 }
                 else {
                     builder.Append(c);
@@ -177,8 +170,6 @@ namespace Untitled.ConfigDataBuilder.Editor
                 var flagIgnore = false;
                 var flagDefault = false;
                 var flagSeparator = false;
-                var flagRef = false;
-                var flagElemRef = false;
                 foreach (var flag in EscapableSplitString(reader.GetValue(colIndex).ToString(), '|')) {
                     var trimmed = flag.Trim();
                     if (string.IsNullOrEmpty(trimmed)) {
@@ -210,56 +201,10 @@ namespace Untitled.ConfigDataBuilder.Editor
                         colInfo.Info |= value;
                     }
                     else if (trimmed.StartsWith("ref:", StringComparison.OrdinalIgnoreCase)) {
-                        if (flagRef || flagElemRef) {
-                            throw new InvalidDataException($"{colDebugName} has duplicated 'ref' or 'elem-ref' flag");
-                        }
-                        flagRef = true;
-                        if (colInfo.Converter.IsCollection) {
-                            throw new InvalidDataException($"{colDebugName} has invalid 'ref' with array type");
-                        }
-                        var rest = trimmed.Substring("ref:".Length);
-                        var index = rest.IndexOf('.');
-                        if (index < 0) {
-                            throw new InvalidDataException($"{colDebugName} has invalid 'ref' target: {rest}");
-                        }
-                        var hasPlus = rest.Last() == '+';
-                        if (hasPlus && colInfo.Converter.Type != typeof(string)) {
-                            throw new InvalidDataException($"{colDebugName} has invalid PLUS 'ref' with type {colInfo.Converter.TypeName}");
-                        }
-                        colInfo.Ref = new RefInfo {
-                            IsElem = false,
-                            TableName = rest.Substring(0, index),
-                            ColumnName = hasPlus
-                                ? rest.Substring(index + 1, rest.Length - index - 2)
-                                : rest.Substring(index + 1),
-                            CanHavePlus = hasPlus
-                        };
+                        Debug.LogWarning($"Deprecated 'ref' flag for {colDebugName}");
                     }
                     else if (trimmed.StartsWith("elem-ref:", StringComparison.OrdinalIgnoreCase)) {
-                        if (flagRef || flagElemRef) {
-                            throw new InvalidDataException($"{colDebugName} has duplicated 'ref' or 'elem-ref' flag");
-                        }
-                        flagElemRef = true;
-                        if (!colInfo.Converter.IsCollection) {
-                            throw new InvalidDataException($"{colDebugName} has invalid 'elem-ref' with non-array type");
-                        }
-                        var rest = trimmed.Substring("elem-ref:".Length);
-                        var index = rest.IndexOf('.');
-                        if (index < 0) {
-                            throw new InvalidDataException($"{colDebugName} has invalid 'elem-ref' target: {rest}");
-                        }
-                        var hasPlus = rest.Last() == '+';
-                        if (hasPlus && colInfo.Converter.Type != typeof(string[])) {
-                            throw new InvalidDataException($"{colDebugName} has invalid PLUS 'elem-ref' with type {colInfo.Converter.TypeName}");
-                        }
-                        colInfo.Ref = new RefInfo {
-                            IsElem = true,
-                            TableName = rest.Substring(0, index),
-                            ColumnName = hasPlus
-                                ? rest.Substring(index + 1, rest.Length - index - 2)
-                                : rest.Substring(index + 1),
-                            CanHavePlus = hasPlus
-                        };
+                        Debug.LogWarning($"Deprecated 'elem-ref' flag for {colDebugName}");
                     }
                     else if (trimmed.StartsWith("default:", StringComparison.OrdinalIgnoreCase)) {
                         if (flagDefault) {
@@ -479,7 +424,6 @@ namespace Untitled.ConfigDataBuilder.Editor
                         Name = colInfo.Name,
                         LowerCamelName = new string(lowerNameChars),
                         Converter = colInfo.Converter,
-                        Ref = colInfo.Ref,
                         Keys = colInfo.Keys,
                         Info = colInfo.Info
                     };

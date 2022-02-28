@@ -23,8 +23,6 @@ namespace Untitled.ConfigDataBuilder.Editor
 
         internal HashSet<object> Keys { get; set; }
 
-        internal SheetData.RefInfo Ref { get; set; }
-
         public bool IsIgnored { get; set; }
 
         public InfoType Info { get; set; }
