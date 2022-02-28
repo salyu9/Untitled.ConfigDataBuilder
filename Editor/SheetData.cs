@@ -2,39 +2,22 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Untitled.ConfigDataBuilder.Editor
 {
-    [Flags]
-    internal enum InfoType
-    {
-        None = 0,
-        L10n = 1,
-    }
-
-    internal class RefInfo
-    {
-        public bool IsElem { get; set; }
-        public string TableName { get; set; }
-        public string ColumnName { get; set; }
-        public bool CanHavePlus { get; set; }
-    }
-
-    internal class ColumnInfo
-    {
-        public int Index { get; set; }
-        public string Name { get; set; }
-        public string LowerCamelName { get; set; }
-        public SheetValueConverter Converter { get; set; }
-        public HashSet<object> Keys { get; set; }
-        public RefInfo Ref { get; set; }
-        public InfoType Info { get; set; }
-    }
-
     internal class SheetData
     {
         private static readonly Regex IdReg = new Regex(@"^[A-Z][A-Za-z0-9]*$", RegexOptions.Compiled);
+
+        internal class RefInfo
+        {
+            public bool IsElem { get; set; }
+            public string TableName { get; set; }
+            public string ColumnName { get; set; }
+            public bool CanHavePlus { get; set; }
+        }
 
         public string MergedSheetName { get; private set; }
         public string ClassName { get; private set; }
@@ -42,26 +25,87 @@ namespace Untitled.ConfigDataBuilder.Editor
         public ColumnInfo[] Keys { get; private set; }
         public object[][] Rows { get; private set; }
 
-        private class InternalColumnInfo
-        {
-            public int ColIndex { get; set; }
-            public string Name { get; set; }
-            public bool IsKey { get; set; }
-            public HashSet<object> Keys { get; set; }
-            public RefInfo Ref { get; set; }
-            public bool IsIgnored { get; set; }
-            public InfoType Info { get; set; }
-            public string ConfigTypeName { get; set; }
-            public SheetValueConverter Converter { get; set; }
-            public object DefaultValue { get; set; }
-        }
-
         private class InternalSheetData
         {
             public string Path { get; set; }
             public string SheetName { get; set; }
-            public List<InternalColumnInfo> Header { get; set; }
+            public List<ColumnInfo> Header { get; set; }
             public List<object[]> Rows { get; set; }
+        }
+
+        private static char GetUnescapedCharFor(char c)
+        {
+            return c switch {
+                'a' => '\a',
+                'b' => '\b',
+                't' => '\t',
+                'n' => '\n',
+                'v' => '\v',
+                'f' => '\f',
+                'r' => '\r',
+                'e' => (char)27,
+                _   => c
+            };
+        }
+
+        private static string UnescapeString(string input)
+        {
+            var i = 0;
+            var len = input.Length;
+            var escaping = false;
+            var builder = new StringBuilder();
+            while (i < len) {
+                var c = input[i];
+
+                if (escaping) {
+                    builder.Append(GetUnescapedCharFor(c));
+                    escaping = false;
+                }
+                else if (c == '\\') {
+                    escaping = true;
+                }
+                else {
+                    builder.Append(c);
+                }
+                ++i;
+            }
+            if (escaping) {
+                throw new ArgumentException($"Invalid escaping end of '{input}'");
+            }
+            return builder.ToString();
+        }
+
+        private static IEnumerable<string> EscapableSplitString(string input, char separator)
+        {
+            var i = 0;
+            var len = input.Length;
+            var escaping = false;
+            var builder = new StringBuilder();
+            while (i < len) {
+                var c = input[i];
+
+                if (escaping) {
+                    builder.Append(GetUnescapedCharFor(c));
+                    escaping = false;
+                }
+                else if (c == separator) {
+                    yield return builder.ToString();
+                    builder = new StringBuilder();
+                }
+                else if (c == '\\') {
+                    escaping = true;
+                }
+                else {
+                    builder.Append(c);
+                }
+                ++i;
+            }
+            if (escaping) {
+                throw new ArgumentException($"Invalid escaping end of '{input}'");
+            }
+            if (builder.Length > 0) {
+                yield return builder.ToString();
+            }
         }
 
         private static InternalSheetData ReadSheet(ISheetValueConverterCollection converters, ISheetReader reader, string path, bool headerOnly)
@@ -71,16 +115,16 @@ namespace Untitled.ConfigDataBuilder.Editor
             if (!reader.ReadNextRow()) {
                 throw new InvalidDataException($"{path}({sheetName}) has no header row.");
             }
-            var header = new List<InternalColumnInfo>();
+            var header = new List<ColumnInfo>();
             var colNameSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             for (var colIndex = 0; colIndex < reader.CellCount; ++colIndex) {
                 if (reader.IsNull(colIndex)) {
-                    header.Add(new InternalColumnInfo { IsIgnored = true });
+                    header.Add(new ColumnInfo { IsIgnored = true });
                 }
                 else {
                     var colName = reader.GetValue(colIndex).ToString().Trim();
                     if (string.IsNullOrEmpty(colName) || colName[0] == '(' || colName[0] == '（') {
-                        header.Add(new InternalColumnInfo { IsIgnored = true });
+                        header.Add(new ColumnInfo { IsIgnored = true });
                     }
                     else {
                         if (!IdReg.IsMatch(colName)) {
@@ -93,7 +137,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                         }
                         colNameSet.Add(colName);
 
-                        header.Add(new InternalColumnInfo { ColIndex = colIndex, Name = colName });
+                        header.Add(new ColumnInfo { ColIndex = colIndex, Name = colName });
                     }
                 }
             }
@@ -129,14 +173,13 @@ namespace Untitled.ConfigDataBuilder.Editor
                 if (colInfo.IsIgnored || reader.IsNull(colIndex)) {
                     continue;
                 }
-                var flags = reader.GetValue(colIndex).ToString().Split('|');
                 var flagKey = false;
                 var flagIgnore = false;
                 var flagDefault = false;
                 var flagSeparator = false;
                 var flagRef = false;
                 var flagElemRef = false;
-                foreach (var flag in flags) {
+                foreach (var flag in EscapableSplitString(reader.GetValue(colIndex).ToString(), '|')) {
                     var trimmed = flag.Trim();
                     if (string.IsNullOrEmpty(trimmed)) {
                         continue;
@@ -243,6 +286,9 @@ namespace Untitled.ConfigDataBuilder.Editor
                         var rest = trimmed.Substring("separator:".Length);
                         colInfo.Converter.Separator = rest;
                     }
+                    else if (trimmed.Equals("escape", StringComparison.OrdinalIgnoreCase)) {
+                        colInfo.AllowEscape = true;
+                    }
                     else {
                         throw new InvalidDataException($"{colDebugName} has unknown flag '{trimmed}'");
                     }
@@ -287,7 +333,10 @@ namespace Untitled.ConfigDataBuilder.Editor
                         currentRow[index] = v;
                     }
                     else {
-                        var raw = reader.IsNull(columnInfo.ColIndex) ? null : reader.GetValue(columnInfo.ColIndex);
+                        var raw = reader.IsNull(columnInfo.ColIndex) ? null : reader.GetValue(columnInfo.ColIndex).ToString();
+                        if (columnInfo.AllowEscape) {
+                            raw = UnescapeString(raw);
+                        }
                         var converter = columnInfo.Converter;
                         object result;
                         try {
@@ -426,7 +475,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                         lowerNameChars[i] = char.ToLower(lowerNameChars[i]);
                     }
                     var columnInfo = new ColumnInfo {
-                        Index = colIndex++,
+                        ColIndex = colIndex++,
                         Name = colInfo.Name,
                         LowerCamelName = new string(lowerNameChars),
                         Converter = colInfo.Converter,

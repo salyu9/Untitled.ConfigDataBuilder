@@ -2,12 +2,12 @@ using System.IO;
 
 namespace Untitled.ConfigDataBuilder.Base
 {
-    public interface IConfigValueConverter<T>
+    public interface IMultiSegConfigValueConverter<T>
     {
         /// <summary>
-        /// Parse string to value of type <typeparamref name="T"/>.
+        /// Parse array of string to value of type <typeparamref name="T"/>.
         /// </summary>
-        T Parse(string value);
+        T Parse(string[] segs);
 
         /// <summary>
         /// Write value of T to <see cref="BinaryWriter"/>.

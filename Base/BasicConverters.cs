@@ -9,7 +9,7 @@ namespace Untitled.ConfigDataBuilder.Base
     public sealed class BoolConverter : IConfigValueConverter<bool>
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Parse(string value) => System.Convert.ToBoolean(value);
+        public bool Parse(string value) => Convert.ToBoolean(value);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteTo(BinaryWriter writer, bool value)
@@ -31,7 +31,7 @@ namespace Untitled.ConfigDataBuilder.Base
         public short Parse(string value)
         {
             return value.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
-                ? System.Convert.ToInt16(value, 16)
+                ? Convert.ToInt16(value, 16)
                 : short.Parse(value);
         }
 
@@ -55,7 +55,7 @@ namespace Untitled.ConfigDataBuilder.Base
         public ushort Parse(string value)
         {
             return value.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
-                ? System.Convert.ToUInt16(value, 16)
+                ? Convert.ToUInt16(value, 16)
                 : ushort.Parse(value);
         }
 
@@ -79,7 +79,7 @@ namespace Untitled.ConfigDataBuilder.Base
         public int Parse(string value)
         {
             return value.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
-                ? System.Convert.ToInt32(value, 16)
+                ? Convert.ToInt32(value, 16)
                 : int.Parse(value);
         }
 
@@ -103,7 +103,7 @@ namespace Untitled.ConfigDataBuilder.Base
         public uint Parse(string value)
         {
             return value.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
-                ? System.Convert.ToUInt32(value, 16)
+                ? Convert.ToUInt32(value, 16)
                 : uint.Parse(value);
         }
 
@@ -127,7 +127,7 @@ namespace Untitled.ConfigDataBuilder.Base
         public long Parse(string value)
         {
             return value.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
-                ? System.Convert.ToInt64(value, 16)
+                ? Convert.ToInt64(value, 16)
                 : long.Parse(value);
         }
 
@@ -151,7 +151,7 @@ namespace Untitled.ConfigDataBuilder.Base
         public ulong Parse(string value)
         {
             return value.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
-                ? System.Convert.ToUInt64(value, 16)
+                ? Convert.ToUInt64(value, 16)
                 : ulong.Parse(value);
         }
 
@@ -212,15 +212,12 @@ namespace Untitled.ConfigDataBuilder.Base
         public bool IsScalar => true;
     }
 
-    public sealed class Vector2Converter : IConfigValueConverter<Vector2>, IMultiSegConverter
+    public sealed class Vector2Converter : IMultiSegConfigValueConverter<Vector2>
     {
-        public string Separator { get; set; }
-
-        public Vector2 Parse(string value)
+        public Vector2 Parse(string[] segs)
         {
-            var segs = value.Split(new[] { Separator ?? "," }, StringSplitOptions.None);
             if (segs.Length != 2) {
-                throw new InvalidDataException($"Cannot convert \"{value}\" to Vector2, segments count must be 2");
+                throw new InvalidDataException($"Cannot convert \"{string.Join(",", segs)}\" to Vector2, segments count must be 2");
             }
             return new Vector2(float.Parse(segs[0]), float.Parse(segs[1]));
         }
@@ -247,15 +244,12 @@ namespace Untitled.ConfigDataBuilder.Base
         public bool IsScalar => false;
     }
 
-    public sealed class Vector3Converter : IConfigValueConverter<Vector3>, IMultiSegConverter
+    public sealed class Vector3Converter : IMultiSegConfigValueConverter<Vector3>
     {
-        public string Separator { get; set; }
-
-        public Vector3 Parse(string value)
+        public Vector3 Parse(string[] segs)
         {
-            var segs = value.Split(new[] { Separator ?? "," }, StringSplitOptions.None);
             if (segs.Length != 3) {
-                throw new InvalidDataException($"Cannot convert \"{value}\" to Vector3, segments count must be 3");
+                throw new InvalidDataException($"Cannot convert \"{string.Join(",", segs)}\" to Vector3, segments count must be 3");
             }
             return new Vector3(float.Parse(segs[0]), float.Parse(segs[1]), float.Parse(segs[2]));
         }
@@ -284,15 +278,12 @@ namespace Untitled.ConfigDataBuilder.Base
         public bool IsScalar => false;
     }
 
-    public sealed class Vector4Converter : IConfigValueConverter<Vector4>, IMultiSegConverter
+    public sealed class Vector4Converter : IMultiSegConfigValueConverter<Vector4>
     {
-        public string Separator { get; set; }
-
-        public Vector4 Parse(string value)
+        public Vector4 Parse(string[] segs)
         {
-            var segs = value.Split(new[] { Separator ?? "," }, StringSplitOptions.None);
             if (segs.Length != 4) {
-                throw new InvalidDataException($"Cannot convert \"{value}\" to Vector4, segments count must be 4");
+                throw new InvalidDataException($"Cannot convert \"{string.Join(",", segs)}\" to Vector4, segments count must be 4");
             }
             return new Vector4(float.Parse(segs[0]), float.Parse(segs[1]), float.Parse(segs[2]), float.Parse(segs[3]));
         }
@@ -323,15 +314,12 @@ namespace Untitled.ConfigDataBuilder.Base
         public bool IsScalar => false;
     }
 
-    public sealed class ColorConverter : IConfigValueConverter<Color>, IMultiSegConverter
+    public sealed class ColorConverter : IMultiSegConfigValueConverter<Color>
     {
-        public string Separator { get; set; }
-
-        public Color Parse(string value)
+        public Color Parse(string[] segs)
         {
-            var segs = value.Split(new[] { Separator ?? "," }, StringSplitOptions.None);
             if (segs.Length != 4) {
-                throw new InvalidDataException($"Cannot convert \"{value}\" to Color, segments count must be 4 (r, g, b, a)");
+                throw new InvalidDataException($"Cannot convert \"{string.Join(",", segs)}\" to Color, segments count must be 4 (r, g, b, a)");
             }
             return new Color(float.Parse(segs[0]), float.Parse(segs[1]), float.Parse(segs[2]), float.Parse(segs[3]));
         }
@@ -362,16 +350,12 @@ namespace Untitled.ConfigDataBuilder.Base
         public bool IsScalar => false;
     }
 
-    public sealed class Color32Converter : IConfigValueConverter<Color32>, IMultiSegConverter
+    public sealed class Color32Converter : IMultiSegConfigValueConverter<Color32>
     {
-        public string Separator { get; set; }
-
-        public Color32 Parse(string value)
+        public Color32 Parse(string[] segs)
         {
-            var segs = value.Split(new[] { Separator ?? "," }, StringSplitOptions.None);
             if (segs.Length != 4) {
-                throw new InvalidDataException(
-                    $"Cannot convert \"{value}\" to Color32, segments count must be 4 (r, g, b, a)");
+                throw new InvalidDataException($"Cannot convert \"{string.Join(",", segs)}\" to Color32, segments count must be 4 (r, g, b, a)");
             }
             return new Color32(byte.Parse(segs[0]), byte.Parse(segs[1]), byte.Parse(segs[2]), byte.Parse(segs[3]));
         }

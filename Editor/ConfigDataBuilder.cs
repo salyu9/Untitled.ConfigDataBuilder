@@ -680,12 +680,12 @@ namespace Untitled.ConfigDataBuilder.Editor
                     var l10nRows = new List<L10nRow>();
 
                     foreach (var row in sheet.Rows) {
-                        var key = row[keyCol.Index] is string s ? s : row[keyCol.Index].ToString();
+                        var key = row[keyCol.ColIndex] is string s ? s : row[keyCol.ColIndex].ToString();
                         var values = new List<L10nProperty>();
                         foreach (var l10nCol in l10nCols) {
                             var rowKey = l10nCol.Name;
 
-                            var obj = row[l10nCol.Index];
+                            var obj = row[l10nCol.ColIndex];
                             values.Add(new L10nProperty { Name = rowKey, Value = obj });
                         }
                         l10nRows.Add(new L10nRow { Key = key, Properties = values.ToArray() });

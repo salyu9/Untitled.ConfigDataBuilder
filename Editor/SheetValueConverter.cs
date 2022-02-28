@@ -39,7 +39,7 @@ namespace Untitled.ConfigDataBuilder.Editor
         public virtual bool IsScalar => true;
         public virtual bool IsCollection => false;
         public virtual bool CanBeKey => true;
-        public abstract object Convert(object rawValue);
+        public abstract object Convert(string rawValue);
         public abstract string ReadBinaryExp(string readerVarName);
         public abstract void WriteBinary(BinaryWriter writer, object value);
 
@@ -72,11 +72,11 @@ namespace Untitled.ConfigDataBuilder.Editor
                 _converter = converter;
             }
 
-            public override object Convert(object rawValue)
+            public override object Convert(string rawValue)
             {
-                if (rawValue == null) return null;
-                if (rawValue is string s && (string.IsNullOrWhiteSpace(s) ||
-                    s.Equals("null", StringComparison.OrdinalIgnoreCase))) {
+                if (rawValue == null
+                 || string.IsNullOrWhiteSpace(rawValue)
+                 || rawValue.Equals("null", StringComparison.OrdinalIgnoreCase)) {
                     return null;
                 }
                 return _converter.Convert(rawValue);
@@ -103,7 +103,7 @@ namespace Untitled.ConfigDataBuilder.Editor
             }
         }
 
-        private class ArrayWrappedConverter : SheetValueConverter, IMultiSegConverter
+        private class ArrayWrappedConverter : SheetValueConverter
         {
             public override string TypeName
                 => _converter.TypeName + "[]";
@@ -127,29 +127,22 @@ namespace Untitled.ConfigDataBuilder.Editor
                 _converter = converter;
             }
 
-            public override object Convert(object rawValue)
+            public override object Convert(string rawValue)
             {
                 if (rawValue == null) return Array.CreateInstance(_converter.Type, 0);
-                if (rawValue is string str) {
-                    if (string.IsNullOrWhiteSpace(str) || str.Equals("null", StringComparison.OrdinalIgnoreCase)) {
-                        return Array.CreateInstance(_converter.Type, 0);
-                    }
-                    var segs = str.Split(new[] { Separator ?? "," }, StringSplitOptions.None);
-                    var list = new List<object>();
-                    foreach (var seg in segs)
-                    {
-                        list.Add(_converter.Convert(seg.Trim()));
-                    }
-                    var result = Array.CreateInstance(_converter.Type, list.Count);
-                    for (var i = 0; i < list.Count; ++i) {
-                        result.SetValue(list[i], i);
-                    }
-                    return result;
+                if (string.IsNullOrWhiteSpace(rawValue) || rawValue.Equals("null", StringComparison.OrdinalIgnoreCase)) {
+                    return Array.CreateInstance(_converter.Type, 0);
                 }
-
-                var singleElem = Array.CreateInstance(_converter.Type, 1);
-                singleElem.SetValue(_converter.Convert(rawValue), 0);
-                return singleElem;
+                var segs = rawValue.Split(new[] { Separator ?? "," }, StringSplitOptions.None);
+                var list = new List<object>();
+                foreach (var seg in segs) {
+                    list.Add(_converter.Convert(seg.Trim()));
+                }
+                var result = Array.CreateInstance(_converter.Type, list.Count);
+                for (var i = 0; i < list.Count; ++i) {
+                    result.SetValue(list[i], i);
+                }
+                return result;
             }
 
             public override string ReadBinaryExp(string readerVarName) =>
@@ -199,34 +192,30 @@ namespace Untitled.ConfigDataBuilder.Editor
                 _valueConverter = valueConverter;
             }
 
-            public override object Convert(object rawValue)
+            public override object Convert(string rawValue)
             {
                 var elemSplitter = new[] { Separator ?? "," };
                 var kvSplitter = new[] { ':' };
                 var result = (IDictionary)Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(_keyConverter.Type, _valueConverter.Type));
                 if (rawValue == null) return result;
-                if (rawValue is string str) {
-                    if (string.IsNullOrWhiteSpace(str) || str.Equals("null", StringComparison.OrdinalIgnoreCase)) {
-                        return result;
-                    }
-                    var segs = str.Split(elemSplitter, StringSplitOptions.None);
-                    for (var i = 0; i < segs.Length; ++i) {
-                        segs[i] = segs[i].Trim();
-                        var subSegs = segs[i].Split(kvSplitter, StringSplitOptions.None);
-                        if (subSegs.Length != 2) {
-                            throw new InvalidDataException($"Invalid key-value pair: {segs[i]}");
-                        }
-                        var key = _keyConverter.Convert(subSegs[0]);
-                        var value = _valueConverter.Convert(subSegs[1]);
-                        if (result.Contains(key)) {
-                            throw new InvalidDataException($"Duplicated key: {key}");
-                        }
-                        result.Add(key, value);
-                    }
+                if (string.IsNullOrWhiteSpace(rawValue) || rawValue.Equals("null", StringComparison.OrdinalIgnoreCase)) {
                     return result;
                 }
-
-                throw new InvalidCastException($"Cannot convert '{rawValue}'({rawValue.GetType().Name}) to {Type.Name}");
+                var segs = rawValue.Split(elemSplitter, StringSplitOptions.None);
+                for (var i = 0; i < segs.Length; ++i) {
+                    segs[i] = segs[i].Trim();
+                    var subSegs = segs[i].Split(kvSplitter, StringSplitOptions.None);
+                    if (subSegs.Length != 2) {
+                        throw new InvalidDataException($"Invalid key-value pair: {segs[i]}");
+                    }
+                    var key = _keyConverter.Convert(subSegs[0]);
+                    var value = _valueConverter.Convert(subSegs[1]);
+                    if (result.Contains(key)) {
+                        throw new InvalidDataException($"Duplicated key: {key}");
+                    }
+                    result.Add(key, value);
+                }
+                return result;
             }
 
             public override string ReadBinaryExp(string readerVarName) =>
@@ -265,23 +254,20 @@ namespace Untitled.ConfigDataBuilder.Editor
                 _is64Bit = underlying == typeof(long) || underlying == typeof(ulong);
             }
 
-            public override object Convert(object rawValue)
+            public override object Convert(string rawValue)
             {
-                if (rawValue is string str) {
-                    if (_isFlags) {
-                        var values = str.Split(new[] { Separator ?? "|" }, StringSplitOptions.None);
-                        if (values.Length == 0) {
-                            throw new ArgumentException($"Empty value for {TypeName}");
-                        }
-                        var result = 0L;
-                        foreach (var value in values) {
-                            result |= System.Convert.ToInt64(Enum.Parse(Type, value));
-                        }
-                        return Enum.ToObject(Type, result);
+                if (_isFlags) {
+                    var values = rawValue.Split(new[] { Separator ?? "|" }, StringSplitOptions.None);
+                    if (values.Length == 0) {
+                        throw new ArgumentException($"Empty value for {TypeName}");
                     }
-                    return Enum.Parse(Type, str);
+                    var result = 0L;
+                    foreach (var value in values) {
+                        result |= System.Convert.ToInt64(Enum.Parse(Type, value));
+                    }
+                    return Enum.ToObject(Type, result);
                 }
-                throw new ArgumentException($"Cannot convert '{rawValue}' to {TypeName}");
+                return Enum.Parse(Type, rawValue);
             }
 
             public override string ReadBinaryExp(string readerVarName)
@@ -310,20 +296,7 @@ namespace Untitled.ConfigDataBuilder.Editor
 
             public override Type Type { get; }
 
-            public override bool HasSeparator => _innerConverter is IMultiSegConverter;
-
-            private string _separator;
-            public override string Separator
-            {
-                get => _separator;
-                set
-                {
-                    _separator = value;
-                    if (_innerConverter is IMultiSegConverter multiSeg) {
-                        multiSeg.Separator = value;
-                    }
-                }
-            }
+            public override bool HasSeparator => false;
 
             public override bool IsScalar => _innerConverter.IsScalar;
 
@@ -331,12 +304,52 @@ namespace Untitled.ConfigDataBuilder.Editor
             {
                 _innerConverter = innerConverter;
                 Type = typeof(T);
-                TypeName = Type.FullName;
+                TypeName = typeof(T).FullName;
             }
 
-            public override object Convert(object rawValue)
+            public override object Convert(string rawValue)
             {
-                return _innerConverter.Parse(rawValue is string s ? s : rawValue.ToString());
+                return _innerConverter.Parse(rawValue);
+            }
+
+            public override string ReadBinaryExp(string readerVarName)
+            {
+                return $"ConfigDataManager.{GetConverterVariableNameForType(TypeName)}.ReadFrom({readerVarName})";
+            }
+
+            public override void WriteBinary(BinaryWriter writer, object value)
+            {
+                _innerConverter.WriteTo(writer, (T)value);
+            }
+
+            public override string ToStringExp(string varName)
+            {
+                return $"ConfigDataManager.{GetConverterVariableNameForType(TypeName)}.ToString({varName})";
+            }
+        }
+        
+        private sealed class WrappedMultiSegConverter<T> : SheetValueConverter
+        {
+            private readonly IMultiSegConfigValueConverter<T> _innerConverter;
+
+            public override string TypeName { get; }
+
+            public override Type Type { get; }
+
+            public override bool HasSeparator => true;
+
+            public override bool IsScalar => _innerConverter.IsScalar;
+
+            public WrappedMultiSegConverter(IMultiSegConfigValueConverter<T> innerConverter)
+            {
+                _innerConverter = innerConverter;
+                Type = typeof(T);
+                TypeName = typeof(T).FullName;
+            }
+
+            public override object Convert(string rawValue)
+            {
+                return _innerConverter.Parse(rawValue.Split(new[] { Separator ?? "," }, StringSplitOptions.None));
             }
 
             public override string ReadBinaryExp(string readerVarName)
@@ -369,6 +382,9 @@ namespace Untitled.ConfigDataBuilder.Editor
 
                 public static BasicConverterInfo Create<T>(IConfigValueConverter<T> converter, params string[] alias)
                     => new BasicConverterInfo(new WrappedConverter<T>(converter), typeof(T), converter.GetType(), alias);
+                
+                public static BasicConverterInfo Create<T>(IMultiSegConfigValueConverter<T> converter, params string[] alias)
+                    => new BasicConverterInfo(new WrappedMultiSegConverter<T>(converter), typeof(T), converter.GetType(), alias);
             }
 
             private static readonly BasicConverterInfo[] BasicConverterInfos = {
