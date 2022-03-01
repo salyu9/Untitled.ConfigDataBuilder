@@ -643,8 +643,11 @@ namespace Untitled.ConfigDataBuilder.Editor
                         var values = new List<L10nProperty>();
                         foreach (var l10nCol in l10nCols) {
                             var rowKey = l10nCol.Name;
-
-                            object obj = row[l10nCol.ColIndex] switch {
+                            var value = row[l10nCol.ColIndex];
+                            if (value == null) {
+                                continue;
+                            }
+                            object obj = value switch {
                                 string str                    => str,
                                 string[] strArray             => strArray,
                                 IReadOnlyList<string> strList => strList.ToArray(),
