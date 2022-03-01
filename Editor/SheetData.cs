@@ -133,14 +133,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                                 throw new InvalidDataException($"{colDebugName} has duplicated 'default' flag");
                             }
                             flagDefault = true;
-                            var rest = trimmed.Substring("default:".Length);
-                            try {
-                                colInfo.DefaultValue = colInfo.Converter.ParseEscaped(rest);
-                            }
-                            catch (Exception exc) {
-                                throw new InvalidDataException(
-                                    $"{colDebugName} default value ({rest}) cannot be converted to {colInfo.Converter.TypeName}: {exc.Message}", exc);
-                            }
+                            colInfo.RawDefaultValue = trimmed.Substring("default:".Length);
                         }
                         else if (trimmed.StartsWith("separator:", StringComparison.OrdinalIgnoreCase)) {
                             if (flagSeparator) {
@@ -169,9 +162,21 @@ namespace Untitled.ConfigDataBuilder.Editor
                         throw new InvalidDataException($"{colDebugName} is info AND ignored.");
                     }
                 }
-                if (!flagSeparator) {
-                    if (!colInfo.Converter.SetAutoSeparators()) {
-                        throw new InvalidDataException($"{colDebugName} need to specify separators.");
+                if (!colInfo.IsIgnored) {
+                    if (!flagSeparator) {
+                        if (!colInfo.Converter.SetAutoSeparators()) {
+                            throw new InvalidDataException($"{colDebugName} need to specify separators.");
+                        }
+                    }
+                    if (flagDefault) {
+                        try {
+                            colInfo.DefaultValue = colInfo.Converter.ParseEscaped(colInfo.RawDefaultValue);
+                        }
+                        catch (Exception exc) {
+                            throw new InvalidDataException(
+                                $"{colDebugName} default value ({colInfo.RawDefaultValue}) cannot be converted to {colInfo.Converter.TypeName}: {exc.Message}",
+                                exc);
+                        }
                     }
                 }
             }

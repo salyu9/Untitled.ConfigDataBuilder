@@ -32,6 +32,8 @@ namespace Untitled.ConfigDataBuilder.Editor
         public string ConfigTypeName { get; set; }
 
         internal ISheetValueConverter Converter { get; set; }
+        
+        public string RawDefaultValue { get; set; }
 
         public object DefaultValue { get; set; }
     }
