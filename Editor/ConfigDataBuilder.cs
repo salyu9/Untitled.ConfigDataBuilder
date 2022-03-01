@@ -600,8 +600,9 @@ namespace Untitled.ConfigDataBuilder.Editor
                     }
                     var l10nCols = new List<ColumnInfo>();
                     foreach (var col in sheet.Header.Where(h => h.Info.HasFlag(InfoType.L10n))) {
-                        if (col.Converter.Type != typeof(string) && col.Converter.Type != typeof(string[])) {
-                            Debug.LogError($"{sheet.ClassName}.{col.Name} has L10n info but is neither 'string' nor 'string[]'");
+                        if (col.Converter.Type != typeof(string) && col.Converter.Type != typeof(string[]) &&
+                            col.Converter.Type != typeof(IReadOnlyList<string>)) {
+                            Debug.LogError($"{sheet.ClassName}.{col.Name} has L10n info but is non of 'string', '[string]', 'string[]'");
                             continue;
                         }
                         l10nCols.Add(col);
@@ -624,7 +625,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                         foreach (var l10nCol in l10nCols) {
                             var rowKey = l10nCol.Name;
 
-                            var obj = row[l10nCol.ColIndex];
+                            var obj = row[l10nCol.ColIndex]; // string, IReadOnlyList<string> or string[]
                             values.Add(new L10nProperty { Name = rowKey, Value = obj });
                         }
                         l10nRows.Add(new L10nRow { Key = key, Properties = values.ToArray() });
@@ -672,5 +673,4 @@ namespace Untitled.ConfigDataBuilder.Editor
             builder.AppendLine("}");
         }
     }
-
 }

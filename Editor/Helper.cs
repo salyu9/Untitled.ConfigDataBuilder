@@ -17,6 +17,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                 'f' => '\f',
                 'r' => '\r',
                 'e' => (char)27,
+                's' => ' ',
                 _   => c
             };
         }

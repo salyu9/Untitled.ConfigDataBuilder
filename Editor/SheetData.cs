@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using UnityEngine;
 
 namespace Untitled.ConfigDataBuilder.Editor
 {
@@ -72,7 +71,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                 else if (!colInfo.IsIgnored) {
                     colInfo.ConfigTypeName = reader.GetValue(colIndex).ToString();
                     try {
-                        colInfo.Converter = converters.CreateConverter(colInfo.ConfigTypeName);
+                        colInfo.Converter = converters.GetConverter(colInfo.ConfigTypeName);
                     }
                     catch (Exception exc) {
                         throw new InvalidDataException($"{path}({sheetName}): Cannot create converter for type {colInfo.Name}", exc);
@@ -95,7 +94,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                 var flagDefault = false;
                 var flagSeparator = false;
                 if (!reader.IsNull(colIndex)) {
-                    foreach (var flag in Helper.SplitAndUnescapeString(reader.GetValue(colIndex).ToString(), '|')) {
+                    foreach (var flag in Helper.SplitEscapedString(reader.GetValue(colIndex).ToString(), '|')) {
                         var trimmed = flag.Trim();
                         if (string.IsNullOrEmpty(trimmed)) {
                             continue;
@@ -122,31 +121,24 @@ namespace Untitled.ConfigDataBuilder.Editor
                             }
                             colInfo.Info |= value;
                         }
-                        else if (trimmed.StartsWith("ref:", StringComparison.OrdinalIgnoreCase)) {
-                            Debug.LogWarning($"Deprecated 'ref' flag for {colDebugName}");
-                        }
-                        else if (trimmed.StartsWith("elem-ref:", StringComparison.OrdinalIgnoreCase)) {
-                            Debug.LogWarning($"Deprecated 'elem-ref' flag for {colDebugName}");
-                        }
                         else if (trimmed.StartsWith("default:", StringComparison.OrdinalIgnoreCase)) {
                             if (flagDefault) {
                                 throw new InvalidDataException($"{colDebugName} has duplicated 'default' flag");
                             }
                             flagDefault = true;
-                            colInfo.RawDefaultValue = trimmed.Substring("default:".Length);
+                            colInfo.RawDefaultValue = Helper.UnescapeString(trimmed.Substring("default:".Length).Trim());
                         }
                         else if (trimmed.StartsWith("separator:", StringComparison.OrdinalIgnoreCase)) {
                             if (flagSeparator) {
                                 throw new InvalidDataException($"{colDebugName} has duplicated 'separator' flag");
                             }
                             flagSeparator = true;
-                            var rest = trimmed.Substring("separator:".Length);
-
+                            var rest = Helper.UnescapeString(trimmed.Substring("separator:".Length));
                             if (rest.Length != colInfo.Converter.SeparatorLevel) {
-                                Debug.LogWarning(
-                                    $"{colDebugName} separator size does not match the separator-level of '{colInfo.Converter.TypeName}' (level = {colInfo.Converter.SeparatorLevel})");
+                                throw new InvalidDataException(
+                                    $"{colDebugName} separators size does not match the separator-level of '{colInfo.Converter.TypeName}' (level = {colInfo.Converter.SeparatorLevel})");
                             }
-                            colInfo.Converter.Separators = rest;
+                            colInfo.Separators = rest;
                         }
                         else {
                             throw new InvalidDataException($"{colDebugName} has unknown flag '{trimmed}'");
@@ -164,13 +156,14 @@ namespace Untitled.ConfigDataBuilder.Editor
                 }
                 if (!colInfo.IsIgnored) {
                     if (!flagSeparator) {
-                        if (!colInfo.Converter.SetAutoSeparators()) {
+                        if (!colInfo.Converter.TryCreateDefaultSeparators(out var separators)) {
                             throw new InvalidDataException($"{colDebugName} need to specify separators.");
                         }
+                        colInfo.Separators = separators;
                     }
                     if (flagDefault) {
                         try {
-                            colInfo.DefaultValue = colInfo.Converter.ParseEscaped(colInfo.RawDefaultValue);
+                            colInfo.DefaultValue = colInfo.Converter.ParseEscaped(colInfo.RawDefaultValue, colInfo.Separators);
                         }
                         catch (Exception exc) {
                             throw new InvalidDataException(
@@ -205,26 +198,26 @@ namespace Untitled.ConfigDataBuilder.Editor
 
                 var currentRow = new object[header.Count];
                 var index = 0;
-                foreach (var columnInfo in header) {
-                    if (reader.IsNull(columnInfo.ColIndex) && columnInfo.DefaultValue is {} v) {
+                foreach (var colInfo in header) {
+                    if (reader.IsNull(colInfo.ColIndex) && colInfo.DefaultValue is { } v) {
                         currentRow[index] = v;
                     }
                     else {
-                        var raw = reader.IsNull(columnInfo.ColIndex) ? null : reader.GetValue(columnInfo.ColIndex).ToString();
-                        var converter = columnInfo.Converter;
+                        var raw = reader.IsNull(colInfo.ColIndex) ? null : reader.GetValue(colInfo.ColIndex).ToString();
+                        var converter = colInfo.Converter;
                         object result;
                         try {
-                            result = converter.ParseEscaped(raw);
+                            result = converter.ParseEscaped(raw, colInfo.Separators);
                             System.Diagnostics.Debug.Assert(result == null || result.GetType() == converter.Type);
                         }
                         catch (Exception exc) {
                             throw new InvalidDataException(
-                                $"{path}({sheetName})(row: {rowIndex + 1}, col: {columnInfo.ColIndex + 1}): cannot parse  {(raw != null ? "data \'" + raw + "\'" : "null")} to {converter.TypeName}: {exc.Message}");
+                                $"{path}({sheetName})(row: {rowIndex + 1}, col: {colInfo.ColIndex + 1}): cannot parse  {(raw != null ? "data \'" + raw + "\'" : "null")} to {converter.TypeName}: {exc.Message}");
                         }
-                        if (columnInfo.Keys is {} set) {
+                        if (colInfo.Keys is { } set) {
                             if (set.Contains(result)) {
                                 throw new InvalidDataException(
-                                    $"{path}({sheetName})(row: {rowIndex + 1}, col: {columnInfo.ColIndex + 1}): duplicated key '{result}'");
+                                    $"{path}({sheetName})(row: {rowIndex + 1}, col: {colInfo.ColIndex + 1}): duplicated key '{result}'");
                             }
                             set.Add(result);
                         }
@@ -251,7 +244,7 @@ namespace Untitled.ConfigDataBuilder.Editor
         {
             // header & keys check
             var min = Math.Min(sheet1.Header.Count, sheet2.Header.Count);
-            for (var i = 0 ; i < min; ++i) {
+            for (var i = 0; i < min; ++i) {
                 var col1 = sheet1.Header[i];
                 var col2 = sheet2.Header[i];
                 if (col1.Name != col2.Name) {
@@ -286,7 +279,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                 throw new InvalidDataException(
                     $"{sheet2.Path}({sheet2.SheetName}) has more columns '{sheet2.Header[min].Name}'");
             }
-            
+
             // merge
             foreach (var (col1, col2) in sheet1.Header.Zip(sheet2.Header, (c1, c2) => (c1, c2))) {
                 if (col1.IsKey) {

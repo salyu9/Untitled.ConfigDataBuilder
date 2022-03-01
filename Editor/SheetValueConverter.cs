@@ -33,9 +33,8 @@ namespace Untitled.ConfigDataBuilder.Editor
         string TypeName { get; }
         Type Type { get; }
         int SeparatorLevel { get; }
-        string Separators { get; set; }
-        bool SetAutoSeparators();
-        object ParseEscaped(string rawValue);
+        bool TryCreateDefaultSeparators(out string separators);
+        object ParseEscaped(string rawValue, string separators);
         string ReadBinaryExp(string readerVarName);
         void WriteBinary(BinaryWriter writer, object value);
         string ToStringExp(string varName);
@@ -43,7 +42,7 @@ namespace Untitled.ConfigDataBuilder.Editor
 
     internal interface ISheetValueConverterCollection
     {
-        ISheetValueConverter CreateConverter(string typeName);
+        ISheetValueConverter GetConverter(string typeName);
         IEnumerable<ConverterInfo> EnumerateConverterInfo();
     }
 
@@ -74,25 +73,19 @@ namespace Untitled.ConfigDataBuilder.Editor
                 _converter = converter;
             }
 
-            public string Separators
+            public bool TryCreateDefaultSeparators(out string separators)
             {
-                get => _converter.Separators;
-                set => _converter.Separators = value;
+                return _converter.TryCreateDefaultSeparators(out separators);
             }
 
-            public bool SetAutoSeparators()
-            {
-                return _converter.SetAutoSeparators();
-            }
-
-            public object ParseEscaped(string rawValue)
+            public object ParseEscaped(string rawValue, string separators)
             {
                 if (rawValue == null
                  || string.IsNullOrWhiteSpace(rawValue)
                  || rawValue.Equals("null", StringComparison.OrdinalIgnoreCase)) {
                     return null;
                 }
-                return _converter.ParseEscaped(rawValue);
+                return _converter.ParseEscaped(rawValue, separators);
             }
 
             public string ReadBinaryExp(string readerVarName)
@@ -126,60 +119,43 @@ namespace Untitled.ConfigDataBuilder.Editor
 
             protected readonly ISheetValueConverter Converter;
 
-            private char _separator = ',';
-
             protected AbstractIListConverter(ISheetValueConverter converter)
             {
                 System.Diagnostics.Debug.Assert(typeof(T) == converter.Type);
                 Converter = converter;
             }
 
-            public string Separators
+            public bool TryCreateDefaultSeparators(out string separators)
             {
-                get => _separator + Converter.Separators;
-                set
-                {
-                    if (value.Length == 0)
-                    {
-                        Converter.Separators = value;
-                    }
-                    else
-                    {
-                        _separator = value[0];
-                        Converter.Separators = value.Substring(1);
-                    }
-                }
-            }
-
-            public bool SetAutoSeparators()
-            {
-                if (!Converter.SetAutoSeparators()) {
+                if (!Converter.TryCreateDefaultSeparators(out var innerSeparators)) {
+                    separators = default;
                     return false;
                 }
 
-                var separators = Converter.Separators;
-                if (separators.Contains(',')) {
-                    if (separators.Contains(';')) {
+                if (innerSeparators.Contains(',')) {
+                    if (innerSeparators.Contains(';')) {
+                        separators = default;
                         return false;
                     }
-                    _separator = ';';
+                    separators = ';' + innerSeparators;
                 }
                 else {
-                    _separator = ',';
+                    separators = ',' + innerSeparators;
                 }
                 return true;
             }
 
-            public abstract object ParseEscaped(string rawValue);
+            public abstract object ParseEscaped(string rawValue, string separators);
 
-            protected T[] ParseEscapedToArray(string rawValue)
+            protected T[] ParseEscapedToArray(string rawValue, string separators)
             {
                 if (string.IsNullOrWhiteSpace(rawValue)) {
                     return Array.Empty<T>();
                 }
                 var list = new List<T>();
-                foreach (var seg in Helper.SplitEscapedString(rawValue, _separator)) {
-                    list.Add((T)Converter.ParseEscaped(seg.Trim()));
+                var separator = separators[0];
+                foreach (var seg in Helper.SplitEscapedString(rawValue, separator)) {
+                    list.Add((T)Converter.ParseEscaped(seg.Trim(), separators.Substring(1)));
                 }
                 return list.ToArray();
             }
@@ -210,9 +186,9 @@ namespace Untitled.ConfigDataBuilder.Editor
             public override Type Type
                 => typeof(T[]);
 
-            public override object ParseEscaped(string rawValue)
+            public override object ParseEscaped(string rawValue, string separators)
             {
-                return ParseEscapedToArray(rawValue);
+                return ParseEscapedToArray(rawValue, separators);
             }
 
             public override string ReadBinaryExp(string readerVarName)
@@ -233,9 +209,9 @@ namespace Untitled.ConfigDataBuilder.Editor
             public override Type Type
                 => typeof(IReadOnlyList<T>);
 
-            public override object ParseEscaped(string rawValue)
+            public override object ParseEscaped(string rawValue, string separators)
             {
-                return Array.AsReadOnly(ParseEscapedToArray(rawValue));
+                return Array.AsReadOnly(ParseEscapedToArray(rawValue, separators));
             }
 
             public override string ReadBinaryExp(string readerVarName)
@@ -256,15 +232,11 @@ namespace Untitled.ConfigDataBuilder.Editor
             public Type Type
                 => typeof(IReadOnlyDictionary<TKey, TValue>);
 
-            public int SeparatorLevel => Math.Max(_keyConverter.SeparatorLevel, _valueConverter.SeparatorLevel) + 2;
+            public int SeparatorLevel => _keyConverter.SeparatorLevel + _valueConverter.SeparatorLevel + 2;
 
             private readonly ISheetValueConverter _keyConverter;
 
             private readonly ISheetValueConverter _valueConverter;
-
-            private char _elemSeparator = ',';
-
-            private char _kvSeparator = ':';
 
             public DictionaryConverter(ISheetValueConverter keyConverter, ISheetValueConverter valueConverter)
             {
@@ -274,66 +246,42 @@ namespace Untitled.ConfigDataBuilder.Editor
                 _valueConverter = valueConverter;
             }
 
-            public string Separators
+            public bool TryCreateDefaultSeparators(out string separators)
             {
-                get => _elemSeparator + _keyConverter.Separators + _kvSeparator + _valueConverter.Separators;
-                set
-                {
-                    if (value.Length == 0)
-                    {
-                        _elemSeparator = ',';
-                        _kvSeparator = ':';
-                        _keyConverter.Separators = "";
-                        _valueConverter.Separators = "";
-                    }
-                    else if (value.Length == 1)
-                    {
-                        _elemSeparator = value[0];
-                        _kvSeparator = ':';
-                        _keyConverter.Separators = "";
-                        _valueConverter.Separators = "";
-                    }
-                    else
-                    {
-                        _elemSeparator = value[0];
-                        _kvSeparator = value[1];
-                        var remain = value.Substring(2);
-                        _keyConverter.Separators = remain;
-                        _valueConverter.Separators = remain;
-                    }
-                }
-            }
-
-            public bool SetAutoSeparators()
-            {
-                if (!_keyConverter.SetAutoSeparators() || !_valueConverter.SetAutoSeparators()) {
+                if (!_keyConverter.TryCreateDefaultSeparators(out var keySeparators)
+                 || !_valueConverter.TryCreateDefaultSeparators(out var valueSeparators)) {
+                    separators = null;
                     return false;
                 }
-                var separators = _keyConverter.Separators + _valueConverter.Separators;
-                if (separators.Contains(':') || separators.Contains(',')) {
+                var kvSeparators = keySeparators + valueSeparators;
+                if (kvSeparators.Contains(':') || kvSeparators.Contains(',')) {
+                    separators = null;
                     return false;
                 }
-                _elemSeparator = ',';
-                _kvSeparator = ':';
+                separators = ",:" + kvSeparators;
                 return true;
             }
 
-            public object ParseEscaped(string rawValue)
+            public object ParseEscaped(string rawValue, string separators)
             {
+                var elemSeparator = separators[0];
+                var kvSeparator = separators[1];
+                var keySeparator = separators.Substring(2, _keyConverter.SeparatorLevel);
+                var valueSeparator = separators.Substring(2 + _keyConverter.SeparatorLevel, _valueConverter.SeparatorLevel);
                 var result = new Dictionary<TKey, TValue>();
                 if (rawValue == null) return result;
                 if (string.IsNullOrWhiteSpace(rawValue) || rawValue.Equals("null", StringComparison.OrdinalIgnoreCase)) {
                     return result;
                 }
-                var segs = Helper.SplitEscapedString(rawValue, _elemSeparator);
+                var segs = Helper.SplitEscapedString(rawValue, elemSeparator);
                 foreach (var seg in segs) {
                     var kvSeg = seg.Trim();
-                    var subSegs = Helper.SplitEscapedString(kvSeg, _kvSeparator).ToArray();
+                    var subSegs = Helper.SplitEscapedString(kvSeg, kvSeparator).ToArray();
                     if (subSegs.Length != 2) {
                         throw new InvalidDataException($"Invalid key-value pair: {kvSeg}");
                     }
-                    var key = (TKey)_keyConverter.ParseEscaped(subSegs[0]);
-                    var value = (TValue)_valueConverter.ParseEscaped(subSegs[1]);
+                    var key = (TKey)_keyConverter.ParseEscaped(subSegs[0], keySeparator);
+                    var value = (TValue)_valueConverter.ParseEscaped(subSegs[1], valueSeparator);
                     if (result.ContainsKey(key)) {
                         throw new InvalidDataException($"Duplicated key: {key}");
                     }
@@ -345,7 +293,8 @@ namespace Untitled.ConfigDataBuilder.Editor
             public string ReadBinaryExp(string readerVarName)
             {
                 var arg = "r" + SeparatorLevel;
-                return $"ConfigDataManager.ReadDictionary({readerVarName}, {arg} => {_keyConverter.ReadBinaryExp(arg)}, {arg} => {_valueConverter.ReadBinaryExp(arg)})";
+                return
+                    $"ConfigDataManager.ReadDictionary({readerVarName}, {arg} => {_keyConverter.ReadBinaryExp(arg)}, {arg} => {_valueConverter.ReadBinaryExp(arg)})";
             }
 
             public void WriteBinary(BinaryWriter writer, object value)
@@ -376,8 +325,6 @@ namespace Untitled.ConfigDataBuilder.Editor
             private readonly bool _isFlags;
             private readonly bool _is64Bit;
 
-            private char _separator = ',';
-
             public EnumConverter(Type enumType)
             {
                 TypeName = enumType.FullName;
@@ -387,23 +334,17 @@ namespace Untitled.ConfigDataBuilder.Editor
                 _is64Bit = underlying == typeof(long) || underlying == typeof(ulong);
             }
 
-            public string Separators
+            public bool TryCreateDefaultSeparators(out string separators)
             {
-                get => _isFlags ? _separator.ToString() : string.Empty;
-                set => _separator = value.Length == 0 ? ',' : value[0];
-            }
-
-            public bool SetAutoSeparators()
-            {
-                _separator = ',';
+                separators = ",";
                 return true;
             }
 
-            public object ParseEscaped(string rawValue)
+            public object ParseEscaped(string rawValue, string separators)
             {
                 if (_isFlags) {
                     var result = 0L;
-                    var values = Helper.SplitAndUnescapeString(rawValue, _separator);
+                    var values = Helper.SplitAndUnescapeString(rawValue, separators[0]);
                     foreach (var value in values) {
                         result |= Convert.ToInt64(Enum.Parse(Type, value));
                     }
@@ -450,18 +391,13 @@ namespace Untitled.ConfigDataBuilder.Editor
                 TypeName = typeof(T).FullName;
             }
 
-            public string Separators
+            public bool TryCreateDefaultSeparators(out string separators)
             {
-                get => string.Empty;
-                set { }
-            }
-
-            public bool SetAutoSeparators()
-            {
+                separators = "";
                 return true;
             }
 
-            public object ParseEscaped(string rawValue)
+            public object ParseEscaped(string rawValue, string separators)
             {
                 return _innerConverter.Parse(rawValue != null ? Helper.UnescapeString(rawValue) : null);
             }
@@ -492,8 +428,6 @@ namespace Untitled.ConfigDataBuilder.Editor
 
             public int SeparatorLevel => 1;
 
-            private char _separator;
-
             private readonly char _defaultSeparator;
 
             public WrappedMultiSegConverter(IMultiSegConfigValueConverter<T> innerConverter, char defaultSeparator)
@@ -501,24 +435,19 @@ namespace Untitled.ConfigDataBuilder.Editor
                 _innerConverter = innerConverter;
                 Type = typeof(T);
                 TypeName = typeof(T).FullName;
-                _separator = _defaultSeparator = defaultSeparator;
+                _defaultSeparator = defaultSeparator;
             }
 
-            public string Separators
+            public bool TryCreateDefaultSeparators(out string separators)
             {
-                get => _separator.ToString();
-                set => _separator = value.Length == 0 ? ',' : value[0];
-            }
-
-            public bool SetAutoSeparators()
-            {
-                _separator = _defaultSeparator;
+                separators = new string(_defaultSeparator, 1);
                 return true;
             }
 
-            public object ParseEscaped(string rawValue)
+            public object ParseEscaped(string rawValue, string separators)
             {
-                return _innerConverter.Parse(Helper.SplitAndUnescapeString(rawValue, _separator).ToArray());
+                var segs = Helper.SplitAndUnescapeString(rawValue, separators[0]).ToArray();
+                return _innerConverter.Parse(segs);
             }
 
             public string ReadBinaryExp(string readerVarName)
@@ -649,39 +578,47 @@ namespace Untitled.ConfigDataBuilder.Editor
                 return _converterInfoTable.Values;
             }
 
-            public ISheetValueConverter CreateConverter(string typeName)
+            public ISheetValueConverter GetConverter(string typeName)
             {
                 typeName = typeName.Trim();
+                if (_converters.TryGetValue(typeName, out var converter)) {
+                    return converter;
+                }
+
+                ISheetValueConverter newConverter = null;
                 if (typeName.EndsWith("[]", StringComparison.Ordinal)) {
-                    var innerConverter = CreateConverter(typeName.Substring(0, typeName.Length - 2));
+                    var innerConverter = GetConverter(typeName.Substring(0, typeName.Length - 2));
                     var converterType = typeof(ArrayConverter<>).MakeGenericType(innerConverter.Type);
-                    return (ISheetValueConverter)Activator.CreateInstance(converterType, innerConverter);
+                    newConverter = (ISheetValueConverter)Activator.CreateInstance(converterType, innerConverter);
                 }
-                if (typeName.StartsWith("[", StringComparison.Ordinal) && typeName.EndsWith("]", StringComparison.Ordinal)) {
-                    var innerConverter = CreateConverter(typeName.Substring(1, typeName.Length - 2));
+                else if (typeName.StartsWith("[", StringComparison.Ordinal) && typeName.EndsWith("]", StringComparison.Ordinal)) {
+                    var innerConverter = GetConverter(typeName.Substring(1, typeName.Length - 2));
                     var converterType = typeof(ListConverter<>).MakeGenericType(innerConverter.Type);
-                    return (ISheetValueConverter)Activator.CreateInstance(converterType, innerConverter);
+                    newConverter = (ISheetValueConverter)Activator.CreateInstance(converterType, innerConverter);
                 }
-                if (typeName.EndsWith("?", StringComparison.Ordinal)) {
-                    return new NullableConverter(CreateConverter(typeName.Substring(0, typeName.Length - 1)));
+                else if (typeName.EndsWith("?", StringComparison.Ordinal)) {
+                    newConverter = new NullableConverter(GetConverter(typeName.Substring(0, typeName.Length - 1)));
                 }
-                if (typeName.First() == '{' && typeName.Last() == '}') {
+                else if (typeName.First() == '{' && typeName.Last() == '}') {
                     var inner = typeName.TrimStart('{').TrimEnd('}');
                     var segs = inner.Split(new[] { ':' }, StringSplitOptions.None);
                     if (segs.Length == 2) {
                         var key = segs[0];
                         var value = segs[1];
-                        var keyConverter = CreateConverter(key);
-                        var valueConverter = CreateConverter(value);
+                        var keyConverter = GetConverter(key);
+                        var valueConverter = GetConverter(value);
                         var converterType = typeof(DictionaryConverter<,>).MakeGenericType(keyConverter.Type, valueConverter.Type);
-                        return (ISheetValueConverter)Activator.CreateInstance(converterType, keyConverter, valueConverter);
+                        newConverter = (ISheetValueConverter)Activator.CreateInstance(converterType, keyConverter, valueConverter);
                     }
                 }
-                if (_converters.TryGetValue(typeName, out var converter)) {
-                    return converter;
+
+                if (newConverter == null) {
+
+                    throw new NotSupportedException($"Type '{typeName}' not supported");
                 }
 
-                throw new NotSupportedException($"Type '{typeName}' not supported");
+                _converters.Add(typeName, newConverter);
+                return newConverter;
             }
 
             public SheetValueConverterCollection()
