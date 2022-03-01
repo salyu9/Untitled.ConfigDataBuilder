@@ -22,7 +22,7 @@ You can install this package via OpenUPM (recommended) or git URL.
 
 - via OpenUPM: Install this [OpenUPM Package](https://openupm.com/packages/com.github.salyu9.untitledconfigdatabuilder/)
 
-- via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder.git#v0.1.8` to package manager.
+- via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder.git#v0.1.9` to package manager.
 
 ## Configuration
 
@@ -140,25 +140,27 @@ Basic types supported are:
   - `Vector3` = `vector3` = `float3`
   - `Vector3Int` = `vector3int` = `int3`
 
-- Arrays of are supported, such as `float[]`. Use `float[]` in the type row, and write `5, 6, 7` in data.
+- `[T]`: list of type `T` (read-only). Generates a `IReadOnlyList<T>` property in script. Data format is like `5,6,7` (of type `[float]`).
 
-- Dictionaries are supported such as `IDictionary<string, int>`, Use `{string: int}` in the type row, and write `a: 1, b: 2` in data. Be careful not to use improper types as keys.
+- `T[]`: array of type `T`. Generates a `T[]` property in script. Data format is the same as list. Arrays are mutable so you may accidentally modify config data shared by other scripts. Better to use `[T]` instead.
 
-- Nullable wrapped scalar type, such as `float?`. If data cell is empty or `null`, the value will be `null`.
+- `{TKey: TValue}`: dictionary that maps type `TKey` to type `TValue` (read-only). Generates a `IReadOnlyDictionary<TKey, TValue>` property in script. Data format is like `a: 1, b: 2` (of type `{string: int}`). Be careful not to use improper types as keys (such as lists).
+
+- `T?`: Nullable wrapped scalar type, such as `float?`. If data cell is blank or `null`, the value will be `null`.
 
 ### Separators
 
-For vectors, colors, arrays, dictionaries or custom multi-segment types, the separators can be specified by flags. See [Flags](#flags) for more detail about specify separators.
+For vectors, colors, lists, arrays, dictionaries or custom multi-segment types, the separators can be specified by flags. See [Flags](#flags) for more detail about specify separators.
 
-The default separators for vectors/colors/arrays are "`,`", And the default separators for dictionary are "`,`" and "`:`" (between a key and a value). Trailing separators is allowed.
+The default separators for vectors/colors/lists/arrays are "`,`", And the default separators for dictionary are "`,`" and "`:`" (between a key and a value). Trailing separators is allowed.
 
 - This introduces a problem if nullable type or string is used in array (i.e. multi-segment converter that accepts blanks). For `int?[]`, data "`1, , 2,`" will be `[1, null, 2]`. If the last `null` is required, you can explicitly use `1, , 2, null` or add an additional separator at the end.
 
-Arrays of arrays (actually jagged arrays) and arrays of vectors/colors will need two separators. Defaults are "`;`" for array and "`,`" for elements. For example: `1, 2, 3; 4, 5; 6` will be `[[1, 2, 3], [4, 5], [6]]`.
+Lists/arrays of lists/arrays (actually jagged arrays) and lists of vectors/colors will need two separators. Defaults are "`;`" for array and "`,`" for elements. For example: `1, 2, 3; 4, 5; 6` will be `[[1, 2, 3], [4, 5], [6]]`.
 
-Arrays of higher dimensions are supported, but you will need to explicitly specify the separators using flags.
+Lists/arrays of higher dimensions are supported, but you will need to explicitly specify the separators using flags.
 
-The format of separator flag is `separator:<sep1><sep2><sep3>...`. For example, "`separator:$;,`" can be used to specify separators for `int[][][]`, the data should be in format of `1, 2, 3; 4, 7 $ 8, 7; 6; 3`, which donates `[[[1, 2, 3], [4, 7]], [[8, 7], [6], [3]]]`.
+The format of separator flag is `separator:<sep1><sep2><sep3>...`. For example, "`separator:$;,`" can be used to specify separators for `int[][][]`, the data should be in format of `1, 2, 3; 4, 7 $ 8, 7; 6; 3`, which generates `[[[1, 2, 3], [4, 7]], [[8, 7], [6], [3]]]`.
 
 For dictionaries, `separator:<sep1><sep2><sep3>...` will use `<sep1>` as dictionary element separator, use `<sep2>` as key-value pair separator, and use `<sep3>...` for key type and value type separators. (Better not to use multi-segment types as keys and values).
 

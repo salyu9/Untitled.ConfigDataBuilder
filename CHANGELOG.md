@@ -1,5 +1,9 @@
 # Untitled Config Data Builder
 
+## [0.1.9] - 2022-03-01
+
+- Add read-only list type `[T]`.
+
 ## [0.1.8] - 2022-03-01
 
 - Fix multi-segment default value.
