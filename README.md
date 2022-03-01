@@ -22,7 +22,7 @@ You can install this package via OpenUPM (recommended) or git URL.
 
 - via OpenUPM: Install this [OpenUPM Package](https://openupm.com/packages/com.github.salyu9.untitledconfigdatabuilder/)
 
-- via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder.git#v0.1.7` to package manager.
+- via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder.git#v0.1.8` to package manager.
 
 ## Configuration
 
@@ -161,6 +161,10 @@ Arrays of higher dimensions are supported, but you will need to explicitly speci
 The format of separator flag is `separator:<sep1><sep2><sep3>...`. For example, "`separator:$;,`" can be used to specify separators for `int[][][]`, the data should be in format of `1, 2, 3; 4, 7 $ 8, 7; 6; 3`, which donates `[[[1, 2, 3], [4, 7]], [[8, 7], [6], [3]]]`.
 
 For dictionaries, `separator:<sep1><sep2><sep3>...` will use `<sep1>` as dictionary element separator, use `<sep2>` as key-value pair separator, and use `<sep3>...` for key type and value type separators. (Better not to use multi-segment types as keys and values).
+
+### Escaping
+
+Escaping using "`\`" is allowed in flags and data. It is useful to use `\n` as separator for complex data types. For example, by setting 
 
 ### Custom types
 
