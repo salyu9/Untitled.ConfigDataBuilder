@@ -22,7 +22,7 @@ You can install this package via OpenUPM (recommended) or git URL.
 
 - via OpenUPM: Install this [OpenUPM Package](https://openupm.com/packages/com.github.salyu9.untitledconfigdatabuilder/)
 
-- via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder.git#v0.1.9` to package manager.
+- via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder.git#v0.1.10` to package manager.
 
 ## Configuration
 
@@ -156,17 +156,22 @@ The default separators for vectors/colors/lists/arrays are "`,`", And the defaul
 
 - This introduces a problem if nullable type or string is used in array (i.e. multi-segment converter that accepts blanks). For `int?[]`, data "`1, , 2,`" will be `[1, null, 2]`. If the last `null` is required, you can explicitly use `1, , 2, null` or add an additional separator at the end.
 
-Lists/arrays of lists/arrays (actually jagged arrays) and lists of vectors/colors will need two separators. Defaults are "`;`" for array and "`,`" for elements. For example: `1, 2, 3; 4, 5; 6` will be `[[1, 2, 3], [4, 5], [6]]`.
+Lists/arrays of lists/arrays (actually jagged arrays) and lists of vectors/colors will need two separators. Defaults are "`;`" for array and "`,`" for elements. For example: `1, 2, 3; 4, 5; 6` will be `[[1, 2, 3], [4, 5], [6]]`. Lists/arrays of higher dimensions are supported, but you will need to explicitly specify the separators using flags.
 
-Lists/arrays of higher dimensions are supported, but you will need to explicitly specify the separators using flags.
+The format of separator flag is `separator:<sep1><sep2><sep3>...`. For example, "`separator:$;,`" can be used to specify separators for `int[][][]`, the data should be in format of `1, 2, 3; 4, 7 $ 8, 7; 6; 3`, which generates `[[[1, 2, 3], [4, 7]], [[8, 7], [6], [3]]]`. Separator characters count must be same as needed.
 
-The format of separator flag is `separator:<sep1><sep2><sep3>...`. For example, "`separator:$;,`" can be used to specify separators for `int[][][]`, the data should be in format of `1, 2, 3; 4, 7 $ 8, 7; 6; 3`, which generates `[[[1, 2, 3], [4, 7]], [[8, 7], [6], [3]]]`.
-
-For dictionaries, `separator:<sep1><sep2><sep3>...` will use `<sep1>` as dictionary element separator, use `<sep2>` as key-value pair separator, and use `<sep3>...` for key type and value type separators. (Better not to use multi-segment types as keys and values).
+For dictionaries, `separator:<sep1><sep2><sep3><sep4>...` will use `<sep1>` as dictionary element separator, use `<sep2>` as key-value pair separator, and use `<sep3>...` for key type and then `<sepN>...` for value type separators. (Better not to use multi-segment types as keys). Separators of `{float3: [[int]]}` must contain 5 characters: the first two for dictionary, the third for `float3`, and rest for `[[int]]`.
 
 ### Escaping
 
-Escaping using "`\`" is allowed in flags and data. It is useful to use `\n` as separator for complex data types. For example, by setting 
+Escaping using "`\`" is allowed in flags. It is useful to use `\n` as separator for complex data types. For example, by setting `separator:\n;,`, a data cell of type `[[[int]]]` can be:
+
+```text
+1,2,3; 4,5
+7,8; 9,10,11
+```
+
+Which will be converted to `[[[1,2,3], [4,5]], [[7,8], [9,10,11]]]`.
 
 ### Custom types
 

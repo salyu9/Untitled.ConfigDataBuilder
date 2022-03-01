@@ -1,5 +1,13 @@
 # Untitled Config Data Builder
 
+## [0.1.10] - 2022-03-02
+
+- Add L10n for `[string]`.
+
+- Fix separator handling to support separator+default flag.
+
+- Fix dictionary of list values.
+
 ## [0.1.9] - 2022-03-01
 
 - Add read-only list type `[T]`.
