@@ -117,7 +117,7 @@ A sheet that have a name begin with '(' or '（' is fully ignored. This allows u
 
 ### Sheet data structure
 
-A example sheet data looks like below:
+An example sheet data looks like below:
 
 ![Image](./Doc/Images/sheet-structure.png)
 
@@ -146,7 +146,7 @@ Basic types supported are:
 
 - `{TKey: TValue}`: dictionary that maps type `TKey` to type `TValue` (read-only). Generates a `IReadOnlyDictionary<TKey, TValue>` property in script. Data format is like `a: 1, b: 2` (of type `{string: int}`). Be careful not to use improper types as keys (such as lists).
 
-- `T?`: Nullable wrapped scalar type, such as `float?`. If data cell is blank or `null`, the value will be `null`.
+- `T?`: Nullable wrapped type, such as `float?`. If data cell is blank or `null`, the value will be `null`. `T` must be struct type.
 
 ### Separators
 
