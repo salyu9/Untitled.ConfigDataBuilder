@@ -625,7 +625,12 @@ namespace Untitled.ConfigDataBuilder.Editor
                         foreach (var l10nCol in l10nCols) {
                             var rowKey = l10nCol.Name;
 
-                            var obj = row[l10nCol.ColIndex]; // string, IReadOnlyList<string> or string[]
+                            object obj = row[l10nCol.ColIndex] switch {
+                                string str                    => str,
+                                string[] strArray             => strArray,
+                                IReadOnlyList<string> strList => strList.ToArray(),
+                                _                             => throw new ArgumentOutOfRangeException()
+                            };
                             values.Add(new L10nProperty { Name = rowKey, Value = obj });
                         }
                         l10nRows.Add(new L10nRow { Key = key, Properties = values.ToArray() });
