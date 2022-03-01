@@ -127,22 +127,23 @@ namespace Untitled.ConfigDataBuilder.Editor
 
             public bool TryCreateDefaultSeparators(out string separators)
             {
-                if (!Converter.TryCreateDefaultSeparators(out var innerSeparators)) {
-                    separators = default;
-                    return false;
-                }
+                var separatorLevel = SeparatorLevel;
 
-                if (innerSeparators.Contains(',')) {
-                    if (innerSeparators.Contains(';')) {
+                if (separatorLevel == 1) {
+                    separators = ",";
+                    return true;
+                }
+                if (separatorLevel == 2) {
+                    if (!Converter.TryCreateDefaultSeparators(out var innerSeparators)) {
                         separators = default;
                         return false;
                     }
-                    separators = ';' + innerSeparators;
+                    separators = ";" + innerSeparators;
+                    return true;
                 }
-                else {
-                    separators = ',' + innerSeparators;
-                }
-                return true;
+
+                separators = null;
+                return false;
             }
 
             public abstract object ParseEscaped(string rawValue, string separators);
@@ -217,7 +218,7 @@ namespace Untitled.ConfigDataBuilder.Editor
             public override string ReadBinaryExp(string readerVarName)
             {
                 var arg = "r" + SeparatorLevel;
-                return $"System.Array.AsReadOnly(ConfigDataManager.ReadArray({readerVarName}, {arg} => {Converter.ReadBinaryExp(arg)}))";
+                return $"ConfigDataManager.ReadList({readerVarName}, {arg} => {Converter.ReadBinaryExp(arg)})";
             }
 
             public ListConverter(ISheetValueConverter converter) : base(converter)

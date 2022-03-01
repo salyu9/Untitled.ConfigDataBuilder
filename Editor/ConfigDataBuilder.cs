@@ -406,6 +406,25 @@ namespace Untitled.ConfigDataBuilder.Editor
                     builder.DedentWithCloseBrace();
                     builder.AppendLine();
 
+                    builder.AppendLine("internal static System.Collections.Generic.IReadOnlyList<T> ReadList<T>(");
+                    builder.Indent();
+                    builder.AppendLine("System.IO.BinaryReader reader, System.Func<System.IO.BinaryReader, T> readFunc)");
+                    builder.Dedent();
+                    builder.IndentWithOpenBrace();
+                    {
+                        builder.AppendLine("var size = reader.ReadInt32();");
+                        builder.AppendLine("var result = new T[size];");
+                        builder.AppendLine("for (var i = 0; i < size; ++i)");
+                        builder.IndentWithOpenBrace();
+                        {
+                            builder.AppendLine("result[i] = readFunc(reader);");
+                        }
+                        builder.DedentWithCloseBrace();
+                        builder.AppendLine("return System.Array.AsReadOnly(result);");
+                    }
+                    builder.DedentWithCloseBrace();
+                    builder.AppendLine();
+
                     builder.AppendLine("internal static System.Collections.Generic.IReadOnlyDictionary<TKey, TValue> ReadDictionary<TKey, TValue>(");
                     builder.Indent();
                     builder.AppendLine("System.IO.BinaryReader reader,");
