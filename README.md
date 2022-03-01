@@ -22,7 +22,7 @@ You can install this package via OpenUPM (recommended) or git URL.
 
 - via OpenUPM: Install this [OpenUPM Package](https://openupm.com/packages/com.github.salyu9.untitledconfigdatabuilder/)
 
-- via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder.git#v0.1.6` to package manager.
+- via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder.git#v0.1.7` to package manager.
 
 ## Configuration
 
@@ -135,7 +135,10 @@ Basic types supported are:
 
 - Basic C# types: `bool`, `short`, `ushort`, `int`, `uint`, `long`, `ulong`, `float`, `double`, `string`.
 
-- Unity types: `Vector2`, `Vector3`, `Vector4`, `Color`, `Color32`. Alias for these types are available: `Vector3` = `vector3` = `float3`. Write `2, 5, 3` in data for `Vector3`.
+- Unity types: `Vector2`, `Vector3`, `Vector4`, `Vector2Int`, `Vector3Int`, `Color`, `Color32`. Write `2, 5, 3` in data for `Vector3`. Alias for these types are available:
+
+  - `Vector3` = `vector3` = `float3`
+  - `Vector3Int` = `vector3int` = `int3`
 
 - Arrays of are supported, such as `float[]`. Use `float[]` in the type row, and write `5, 6, 7` in data.
 
@@ -147,7 +150,9 @@ Basic types supported are:
 
 For vectors, colors, arrays, dictionaries or custom multi-segment types, the separators can be specified by flags. See [Flags](#flags) for more detail about specify separators.
 
-The default separators for vectors/colors/arrays are "`,`", And the default separators for dictionary are "`,`" and "`:`" (between a key and a value).
+The default separators for vectors/colors/arrays are "`,`", And the default separators for dictionary are "`,`" and "`:`" (between a key and a value). Trailing separators is allowed.
+
+- This introduces a problem if nullable type or string is used in array (i.e. multi-segment converter that accepts blanks). For `int?[]`, data "`1, , 2,`" will be `[1, null, 2]`. If the last `null` is required, you can explicitly use `1, , 2, null` or add an additional separator at the end.
 
 Arrays of arrays (actually jagged arrays) and arrays of vectors/colors will need two separators. Defaults are "`;`" for array and "`,`" for elements. For example: `1, 2, 3; 4, 5; 6` will be `[[1, 2, 3], [4, 5], [6]]`.
 

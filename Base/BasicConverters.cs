@@ -22,8 +22,6 @@ namespace Untitled.ConfigDataBuilder.Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string ToString(bool value)
             => value.ToString();
-
-        public bool IsScalar => true;
     }
 
     public sealed class Int16Converter : IConfigValueConverter<short>
@@ -46,8 +44,6 @@ namespace Untitled.ConfigDataBuilder.Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string ToString(short value)
             => value.ToString();
-
-        public bool IsScalar => true;
     }
 
     public sealed class UInt16Converter : IConfigValueConverter<ushort>
@@ -70,8 +66,6 @@ namespace Untitled.ConfigDataBuilder.Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string ToString(ushort value)
             => value.ToString();
-
-        public bool IsScalar => true;
     }
 
     public sealed class Int32Converter : IConfigValueConverter<int>
@@ -94,8 +88,6 @@ namespace Untitled.ConfigDataBuilder.Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string ToString(int value)
             => value.ToString();
-
-        public bool IsScalar => true;
     }
 
     public sealed class UInt32Converter : IConfigValueConverter<uint>
@@ -118,8 +110,6 @@ namespace Untitled.ConfigDataBuilder.Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string ToString(uint value)
             => value.ToString();
-
-        public bool IsScalar => true;
     }
 
     public sealed class Int64Converter : IConfigValueConverter<long>
@@ -142,8 +132,6 @@ namespace Untitled.ConfigDataBuilder.Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string ToString(long value)
             => value.ToString();
-
-        public bool IsScalar => true;
     }
 
     public sealed class UInt64Converter : IConfigValueConverter<ulong>
@@ -166,8 +154,6 @@ namespace Untitled.ConfigDataBuilder.Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string ToString(ulong value)
             => value.ToString();
-
-        public bool IsScalar => true;
     }
 
     public sealed class SingleConverter : IConfigValueConverter<float>
@@ -187,8 +173,6 @@ namespace Untitled.ConfigDataBuilder.Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string ToString(float value)
             => value.ToString(CultureInfo.InvariantCulture);
-
-        public bool IsScalar => true;
     }
 
     public sealed class DoubleConverter : IConfigValueConverter<double>
@@ -208,8 +192,6 @@ namespace Untitled.ConfigDataBuilder.Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string ToString(double value)
             => value.ToString(CultureInfo.InvariantCulture);
-
-        public bool IsScalar => true;
     }
 
     public sealed class Vector2Converter : IMultiSegConfigValueConverter<Vector2>
@@ -217,7 +199,7 @@ namespace Untitled.ConfigDataBuilder.Base
         public Vector2 Parse(string[] segs)
         {
             if (segs.Length != 2) {
-                throw new InvalidDataException($"Cannot convert \"{string.Join(",", segs)}\" to Vector2, segments count must be 2");
+                throw new InvalidDataException($"Cannot convert \"{string.Join(",", segs)}\" to {nameof(Vector2)}, segments count must be 2");
             }
             return new Vector2(float.Parse(segs[0]), float.Parse(segs[1]));
         }
@@ -240,8 +222,36 @@ namespace Untitled.ConfigDataBuilder.Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string ToString(Vector2 value)
             => value.ToString();
+    }
+    
+    public sealed class Vector2IntConverter : IMultiSegConfigValueConverter<Vector2Int>
+    {
+        public Vector2Int Parse(string[] segs)
+        {
+            if (segs.Length != 2) {
+                throw new InvalidDataException($"Cannot convert \"{string.Join(",", segs)}\" to {nameof(Vector2Int)}, segments count must be 2");
+            }
+            return new Vector2Int(int.Parse(segs[0]), int.Parse(segs[1]));
+        }
 
-        public bool IsScalar => false;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteTo(BinaryWriter writer, Vector2Int value)
+        {
+            writer.Write(value.x);
+            writer.Write(value.y);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector2Int ReadFrom(BinaryReader reader)
+        {
+            var x = reader.ReadInt32();
+            var y = reader.ReadInt32();
+            return new Vector2Int(x, y);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public string ToString(Vector2Int value)
+            => value.ToString();
     }
 
     public sealed class Vector3Converter : IMultiSegConfigValueConverter<Vector3>
@@ -249,7 +259,7 @@ namespace Untitled.ConfigDataBuilder.Base
         public Vector3 Parse(string[] segs)
         {
             if (segs.Length != 3) {
-                throw new InvalidDataException($"Cannot convert \"{string.Join(",", segs)}\" to Vector3, segments count must be 3");
+                throw new InvalidDataException($"Cannot convert \"{string.Join(",", segs)}\" to {nameof(Vector3)}, segments count must be 3");
             }
             return new Vector3(float.Parse(segs[0]), float.Parse(segs[1]), float.Parse(segs[2]));
         }
@@ -274,8 +284,38 @@ namespace Untitled.ConfigDataBuilder.Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string ToString(Vector3 value)
             => value.ToString();
+    }
+    
+    public sealed class Vector3IntConverter : IMultiSegConfigValueConverter<Vector3Int>
+    {
+        public Vector3Int Parse(string[] segs)
+        {
+            if (segs.Length != 3) {
+                throw new InvalidDataException($"Cannot convert \"{string.Join(",", segs)}\" to {nameof(Vector3Int)}, segments count must be 3");
+            }
+            return new Vector3Int(int.Parse(segs[0]), int.Parse(segs[1]), int.Parse(segs[2]));
+        }
 
-        public bool IsScalar => false;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteTo(BinaryWriter writer, Vector3Int value)
+        {
+            writer.Write(value.x);
+            writer.Write(value.y);
+            writer.Write(value.z);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector3Int ReadFrom(BinaryReader reader)
+        {
+            var x = reader.ReadInt32();
+            var y = reader.ReadInt32();
+            var z = reader.ReadInt32();
+            return new Vector3Int(x, y, z);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public string ToString(Vector3Int value)
+            => value.ToString();
     }
 
     public sealed class Vector4Converter : IMultiSegConfigValueConverter<Vector4>
@@ -310,8 +350,6 @@ namespace Untitled.ConfigDataBuilder.Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string ToString(Vector4 value)
             => value.ToString();
-
-        public bool IsScalar => false;
     }
 
     public sealed class ColorConverter : IMultiSegConfigValueConverter<Color>
@@ -346,8 +384,6 @@ namespace Untitled.ConfigDataBuilder.Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string ToString(Color value)
             => value.ToString();
-
-        public bool IsScalar => false;
     }
 
     public sealed class Color32Converter : IMultiSegConfigValueConverter<Color32>
@@ -382,8 +418,6 @@ namespace Untitled.ConfigDataBuilder.Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string ToString(Color32 value)
             => value.ToString();
-
-        public bool IsScalar => false;
     }
 
     public sealed class StringConverter : IConfigValueConverter<string>
@@ -407,7 +441,5 @@ namespace Untitled.ConfigDataBuilder.Base
 
         public string ToString(string value)
             => value;
-
-        public bool IsScalar => true;
     }
 }

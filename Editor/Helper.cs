@@ -82,8 +82,12 @@ namespace Untitled.ConfigDataBuilder.Editor
             if (escaping) {
                 throw new ArgumentException($"Invalid escaping end of '{input}'");
             }
-            if (builder.Length > 0) {
-                yield return builder.ToString();
+            if (builder.Length == 0) {
+                yield break;
+            }
+            var tail = builder.ToString();
+            if (!string.IsNullOrWhiteSpace(tail)) {
+                yield return tail;
             }
         }
 
@@ -119,8 +123,12 @@ namespace Untitled.ConfigDataBuilder.Editor
             if (escaping) {
                 throw new ArgumentException($"Invalid escaping end of '{input}'");
             }
-            if (builder.Length > 0) {
-                yield return builder.ToString();
+            if (builder.Length == 0) {
+                yield break;
+            }
+            var tail = builder.ToString();
+            if (!string.IsNullOrWhiteSpace(tail)) {
+                yield return tail;
             }
         }
     }
