@@ -1,5 +1,9 @@
 # Untitled Config Data Builder
 
+## [0.1.11] - 2022-03-02
+
+- Fix L10n data exporting.
+
 ## [0.1.10] - 2022-03-02
 
 - Add L10n for `[string]`.

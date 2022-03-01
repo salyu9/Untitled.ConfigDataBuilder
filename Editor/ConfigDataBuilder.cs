@@ -651,7 +651,8 @@ namespace Untitled.ConfigDataBuilder.Editor
                                 string str                    => str,
                                 string[] strArray             => strArray,
                                 IReadOnlyList<string> strList => strList.ToArray(),
-                                _                             => throw new ArgumentOutOfRangeException()
+                                _ => throw new ArgumentOutOfRangeException(
+                                    $"Invalid L10n data type of {key}.{rowKey}: {value}({value.GetType().Name})")
                             };
                             values.Add(new L10nProperty { Name = rowKey, Value = obj });
                         }
