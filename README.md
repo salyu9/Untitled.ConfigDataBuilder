@@ -36,7 +36,7 @@ Use "Project Settings > Config Data Builder" to modify config building settings.
 
 - Data output: The path (relative to Assets/Resources) of the folder which will contain exported data.
 
-- Localization exporter type: If sheet data contains localizable data, a user script class can be set to export localization source data, see [Usage](#usage) section for more details.
+- Localization exporter type: If sheet data contains localizable data, a user script class can be set to export localization source data, see [Localization data](#localization-data) section for more details.
 
 - Custom Type Assemblies: Config data can contain custom types from user scripts. To use custom types, add the names of the assemblies that contains these types at here. See [Custom Types](#custom-types) for more details about custom types.
 
@@ -140,7 +140,7 @@ Basic types supported are:
   - `Vector3` = `vector3` = `float3`
   - `Vector3Int` = `vector3int` = `int3`
 
-- `[T]`: list of type `T` (read-only). Generates a `IReadOnlyList<T>` property in script. Data format is like `5,6,7` (of type `[float]`).
+- `[T]`: list of type `T` (read-only). Generates an `IReadOnlyList<T>` property in script. Data format is like `5,6,7` (of type `[float]`).
 
 - `T[]`: array of type `T`. Generates a `T[]` property in script. Data format is the same as list. Arrays are mutable so you may accidentally modify config data shared by other scripts. Better to use `[T]` instead.
 
@@ -154,11 +154,11 @@ For vectors, colors, lists, arrays, dictionaries or custom multi-segment types, 
 
 The default separators for vectors/colors/lists/arrays are "`,`", And the default separators for dictionary are "`,`" and "`:`" (between a key and a value). Trailing separators is allowed.
 
-- This introduces a problem if nullable type or string is used in array (i.e. multi-segment converter that accepts blanks). For `int?[]`, data "`1, , 2,`" will be `[1, null, 2]`. If the last `null` is required, you can explicitly use `1, , 2, null` or add an additional separator at the end.
+- This introduces a problem if nullable type or string is used in array (i.e. multi-segment converter that accepts blanks). For `[int?]`, data "`1, , 2,`" will be `[1, null, 2]`. If the last `null` is required, you can explicitly use `1, , 2, null` or add an additional separator at the end.
 
 Lists/arrays of lists/arrays (actually jagged arrays) and lists of vectors/colors will need two separators. Defaults are "`;`" for array and "`,`" for elements. For example: `1, 2, 3; 4, 5; 6` will be `[[1, 2, 3], [4, 5], [6]]`. Lists/arrays of higher dimensions are supported, but you will need to explicitly specify the separators using flags.
 
-The format of separator flag is `separator:<sep1><sep2><sep3>...`. For example, "`separator:$;,`" can be used to specify separators for `int[][][]`, the data should be in format of `1, 2, 3; 4, 7 $ 8, 7; 6; 3`, which generates `[[[1, 2, 3], [4, 7]], [[8, 7], [6], [3]]]`. Separator characters count must be same as needed.
+The format of separator flag is `separator:<sep1><sep2><sep3>...`. For example, "`separator:$;,`" can be used to specify separators for `[[[int]]]`, the data should be in format of `1, 2, 3; 4, 7 $ 8, 7; 6; 3`, which generates `[[[1, 2, 3], [4, 7]], [[8, 7], [6], [3]]]`. Separator characters count must be same as needed.
 
 For dictionaries, `separator:<sep1><sep2><sep3><sep4>...` will use `<sep1>` as dictionary element separator, use `<sep2>` as key-value pair separator, and use `<sep3>...` for key type and then `<sepN>...` for value type separators. (Better not to use multi-segment types as keys). Separators of `{float3: [[int]]}` must contain 5 characters: the first two for dictionary, the third for `float3`, and rest for `[[int]]`.
 
@@ -176,6 +176,8 @@ Which will be converted to `[[[1,2,3], [4,5]], [[7,8], [9,10,11]]]`.
 ### Custom types
 
 You can use your custom types in config data. To do so, you need define custom types in a specific assembly (via assembly definitions, see [Unity doc](https://docs.unity3d.com/Manual/ScriptCompilationAssemblyDefinitionFiles.html) for details) and add this assembly into 'Project settings > Config Data Builder > Custom Type Assemblies' settings. This assembly should reference to 'Untitled.ConfigDataBuilder.Base', and define a converter class for each custom type.
+
+Enums in the assembly will be auto imported and become available in config data.
 
 Below is a custom type `MyColor` example. With `MyColor` registered to config builder, you can use HTML color codes in your data cell and treat them as instances of `MyColor` in your code. In sheet data, the type name can be full name `MyCodeNamespace.MyColor` or short name `MyColor` if there's no conflicts.
 
