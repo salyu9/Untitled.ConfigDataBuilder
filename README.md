@@ -325,7 +325,7 @@ This type can still be used in arrays or dictionaries. but be aware of separator
 
 ### Flags
 
-Flag row defines special handling of properties. A column (property) can have multiple flags, separated by '|'. Some flag can have a value after it with a colon. Example: `separator:# | ref:Skill.Id`.
+Flag row defines special handling of properties. A column (property) can have multiple flags, separated by '|'. Some flag can have a value after it with a colon. Example: `separator:# | key`.
 
 Supported flags are list below.
 
@@ -372,9 +372,9 @@ It is a common use case that config contains properties that should be localized
 
 - Sheet contains localization source data should have one and only one property that is marked as `key` property.
 
-- Mark localization properties as `info:L10n`. These properties must be `string` or `string[]`.
+- Mark localization properties as `info:L10n`. These properties must be `string`, `[string]` or `string[]`.
 
-- Make an exporter class that implements `Untitled.ConfigDataBuilder.Editor.IL10nExporter`.
+- Make an exporter class that implements `Untitled.ConfigDataBuilder.Editor.IL10nExporter`. This type must be in an editor-only assembly which has reference to `Untitled.ConfigDataBuilder.Editor` asmdef.
 
 - Add exporter class' fullname to settings.
 
@@ -456,6 +456,8 @@ File: Assets/StreamingAssets/Localization/en/Monster.json
 ```
 
 The exporter will be invoked when config data are reimported. This example exporter writes localization source to json files in streaming assets folder, which can be load at runtime. You can make your own exporter and integrate to your localization solution.
+
+- Sometimes after the config dll regeneration, script code may failed to compile due to config structure changes. The exporter type may not exists and exporting will fail. Just fix your code and do `Tools > Config Data > Reimport Data`, the localization source data will be exported.
 
 ### Recompile & auto reimport & play mode reload
 
