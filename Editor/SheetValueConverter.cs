@@ -513,7 +513,7 @@ namespace Untitled.ConfigDataBuilder.Editor
             private void LoadAssembly(Assembly assembly)
             {
                 foreach (var type in assembly.GetExportedTypes()) {
-                    if (type.IsGenericType || type.IsAbstract || type.IsInterface) {
+                    if (type.IsGenericType) {
                         continue;
                     }
                     var shortName = type.Name;
@@ -558,6 +558,11 @@ namespace Untitled.ConfigDataBuilder.Editor
                         }
                         if (!_converters.ContainsKey(type.Name)) {
                             _converters.Add(type.Name, converter);
+                        }
+                        foreach (var alias in converterTypeAttr.Aliases) {
+                            if (!_converters.ContainsKey(alias)) {
+                                _converters.Add(alias, converter);
+                            }
                         }
                         _converterInfoTable.Add(converter.Type,
                             new ConverterInfo(converterTypeAttr.Type.FullName, GetConverterVariableNameForType(fullName)));
