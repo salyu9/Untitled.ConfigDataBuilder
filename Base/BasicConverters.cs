@@ -356,10 +356,21 @@ namespace Untitled.ConfigDataBuilder.Base
     {
         public Color Parse(string[] segs)
         {
-            if (segs.Length != 4) {
-                throw new InvalidDataException($"Cannot convert \"{string.Join(",", segs)}\" to Color, segments count must be 4 (r, g, b, a)");
+            if (segs.Length == 1) {
+                var seg = segs[0].Trim();
+                if (seg.Length > 0 && seg[0] == '#' && ColorUtility.TryParseHtmlString(seg, out var color)) {
+                    return color;
+                }
+                throw new InvalidDataException($"Cannot convert \"{seg}\" to Color");
             }
-            return new Color(float.Parse(segs[0]), float.Parse(segs[1]), float.Parse(segs[2]), float.Parse(segs[3]));
+            if (segs.Length == 3) {
+                return new Color(float.Parse(segs[0]), float.Parse(segs[1]), float.Parse(segs[2]), 1);
+            }
+            if (segs.Length == 4) {
+                return new Color(float.Parse(segs[0]), float.Parse(segs[1]), float.Parse(segs[2]), float.Parse(segs[3]));
+            }
+            throw new InvalidDataException(
+                $"Cannot convert \"{string.Join(",", segs)}\" to Color, segments count must be 3 (r, g, b) or 4 (r, g, b, a)");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -390,10 +401,21 @@ namespace Untitled.ConfigDataBuilder.Base
     {
         public Color32 Parse(string[] segs)
         {
-            if (segs.Length != 4) {
-                throw new InvalidDataException($"Cannot convert \"{string.Join(",", segs)}\" to Color32, segments count must be 4 (r, g, b, a)");
+            if (segs.Length == 1) {
+                var seg = segs[0].Trim();
+                if (seg.Length > 0 && seg[0] == '#' && ColorUtility.TryParseHtmlString(seg, out var color)) {
+                    return color;
+                }
+                throw new InvalidDataException($"Cannot convert \"{seg}\" to Color32");
             }
-            return new Color32(byte.Parse(segs[0]), byte.Parse(segs[1]), byte.Parse(segs[2]), byte.Parse(segs[3]));
+            if (segs.Length == 3) {
+                return new Color32(byte.Parse(segs[0]), byte.Parse(segs[1]), byte.Parse(segs[2]), 0xFF);
+            }
+            if (segs.Length == 4) {
+                return new Color32(byte.Parse(segs[0]), byte.Parse(segs[1]), byte.Parse(segs[2]), byte.Parse(segs[3]));
+            }
+            throw new InvalidDataException(
+                $"Cannot convert \"{string.Join(",", segs)}\" to Color32, segments count must be 3 (r, g, b) or 4 (r, g, b, a)");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

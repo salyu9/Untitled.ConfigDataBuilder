@@ -135,10 +135,12 @@ Basic types supported are:
 
 - Basic C# types: `bool`, `short`, `ushort`, `int`, `uint`, `long`, `ulong`, `float`, `double`, `string`.
 
-- Unity types: `Vector2`, `Vector3`, `Vector4`, `Vector2Int`, `Vector3Int`, `Color`, `Color32`. Write `2, 5, 3` in data for `Vector3`. Alias for these types are available:
+- Unity vectors: `Vector2`, `Vector3`, `Vector4`, `Vector2Int`, `Vector3Int`. Write `2, 5, 3` in data for `Vector3`. Alias for these types are available:
 
   - `Vector3` = `vector3` = `float3`
   - `Vector3Int` = `vector3int` = `int3`
+
+- Unity colors: `Color` and `Color32`. Values can be 3-number rgb or 4-number rgba, e.g. `255, 0, 0, 255`. Or use html string lead by `#`, e.g. `#FF0000FF`.
 
 - `[T]`: list of type `T` (read-only). Generates an `IReadOnlyList<T>` property in script. Data format is like `5,6,7` (of type `[float]`).
 
@@ -179,7 +181,7 @@ You can use your custom types in config data. To do so, you need define custom t
 
 Enums in the assembly will be auto imported and become available in config data.
 
-Below is a custom type `MyColor` example. With `MyColor` registered to config builder, you can use HTML color codes in your data cell and treat them as instances of `MyColor` in your code. In sheet data, the type name can be full name `MyCodeNamespace.MyColor` or short name `MyColor` if there's no conflicts.
+Below is a custom type `MyColor` example. With `MyColor` registered to config builder, you can use color names in your data cell and treat them as instances of `MyColor` in your code. In sheet data, the type name can be full name `MyCodeNamespace.MyColor` or short name `MyColor` if there's no conflicts, or aliases specified in `ConfigValueConverter` attribute (`my-color`).
 
 ```csharp
 using System;
@@ -189,7 +191,7 @@ using Untitled.ConfigDataBuilder.Base;
 
 namespace MyCodeNamespace
 {
-    [ConfigValueConverter(typeof(MyColorConverter))]
+    [ConfigValueConverter(typeof(MyColorConverter), "my-color")]
     public class MyColor
     {
         public Color Color { get; }
@@ -209,12 +211,12 @@ namespace MyCodeNamespace
         // Parse MyColor from config string
         public MyColor Parse(string value)
         {
-            if (ColorUtility.TryParseHtmlString(value, out var color)) {
-                return new MyColor(color);
-            }
-            else {
-                throw new ArgumentException($"Cannot parse '{value}' to {nameof(MyColor)}");
-            }
+            return value switch {
+                "red"   => Color.red,
+                "green" => Color.green,
+                "blue"  => Color.blue,
+                _       => throw new ArgumentOutOfRangeException(nameof(value), value, null)
+            };
         }
 
         // Write MyColor value to exported config data
@@ -466,3 +468,5 @@ When source files are edited and saved, Untitled Config Builder will try to reim
 If config construction has changed, reimporting procedure will fail with a warning reported: "Config dll types mismatch. Rebuilding config required." In this case, you should use menu "Tools > Config Data > Rebuild Config" to rebuild config assembly and reimport config data.
 
 You can force rebuild all via "Tools > Config Data > Force rebuild Config". You can also reimport data manually using "Tools > Config Data > Reimport data".
+
+⚠️ _Warning_: if you changed your custom type converters, you may need to force rebuild the assembly.
