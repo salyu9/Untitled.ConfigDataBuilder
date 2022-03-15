@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Microsoft.CSharp;
+using System;
+using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Text;
 
@@ -6,6 +8,13 @@ namespace Untitled.ConfigDataBuilder.Editor
 {
     internal static class Helper
     {
+        private static readonly Lazy<CodeDomProvider> InnerCodeProvider = new Lazy<CodeDomProvider>(() => {
+            var provider = CodeDomProvider.CreateProvider("C#");
+            return provider;
+        });
+
+        public static CodeDomProvider CodeProvider => InnerCodeProvider.Value;
+        
         private static char GetUnescapedCharFor(char c)
         {
             return c switch {

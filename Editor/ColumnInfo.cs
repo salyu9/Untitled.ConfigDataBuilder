@@ -19,8 +19,6 @@ namespace Untitled.ConfigDataBuilder.Editor
         /// </summary>
         public string Name { get; internal set; }
 
-        internal string LowerCamelName { get; set; }
-
         public bool IsKey { get; internal set; }
 
         internal HashSet<object> Keys { get; set; }

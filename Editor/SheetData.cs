@@ -2,14 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 
 namespace Untitled.ConfigDataBuilder.Editor
 {
     internal class SheetData
     {
-        private static readonly Regex IdReg = new Regex(@"^[A-Z][A-Za-z0-9]*$", RegexOptions.Compiled);
-
         public string MergedSheetName { get; private set; }
         public string ClassName { get; private set; }
         public ColumnInfo[] Header { get; private set; }
@@ -43,7 +40,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                         header.Add(new ColumnInfo { IsIgnored = true });
                     }
                     else {
-                        if (!IdReg.IsMatch(colName)) {
+                        if (!Helper.CodeProvider.IsValidIdentifier(colName)) {
                             throw new InvalidOperationException(
                                 $"{path}({sheetName}) has invalid property name '{colName}'.");
                         }
@@ -315,7 +312,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                     }
                     var periodIndex = sheetName.IndexOf('.');
                     var className = periodIndex >= 0 ? sheetName.Substring(0, periodIndex) : sheetName;
-                    if (!IdReg.IsMatch(className)) {
+                    if (!Helper.CodeProvider.IsValidIdentifier(className)) {
                         throw new InvalidOperationException($"{className} is not valid identifier name.");
                     }
                     var newSheetData = ReadSheet(converters, reader, path, headerOnly);
@@ -337,14 +334,9 @@ namespace Untitled.ConfigDataBuilder.Editor
                 var keys = new List<ColumnInfo>();
                 var colIndex = 0;
                 foreach (var colInfo in data.Header) {
-                    var lowerNameChars = colInfo.Name.ToCharArray();
-                    for (var i = 0; i < lowerNameChars.Length && char.IsUpper(lowerNameChars[i]); ++i) {
-                        lowerNameChars[i] = char.ToLower(lowerNameChars[i]);
-                    }
                     var columnInfo = new ColumnInfo {
                         ColIndex = colIndex++,
                         Name = colInfo.Name,
-                        LowerCamelName = new string(lowerNameChars),
                         Converter = colInfo.Converter,
                         Keys = colInfo.Keys,
                         Info = colInfo.Info

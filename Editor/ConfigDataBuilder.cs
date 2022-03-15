@@ -182,31 +182,29 @@ namespace Untitled.ConfigDataBuilder.Editor
             foreach (var headerInfo in headerInfoTable) {
                 if (!typeTable.TryGetValue(headerInfo.ClassName, out var type)) {
                     if (logDifference) {
-                        Debug.Log($"Type {headerInfo.ClassName} missing in dll.");
+                        Debug.Log($"Type '{headerInfo.ClassName}' missing in dll.");
                     }
                     return false;
                 }
-                var properties =
-                    type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.GetProperty);
+                var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.GetProperty);
                 var columns = headerInfo.Header.Where(col => col.Info == InfoType.None).ToArray();
                 if (properties.Length != columns.Length) {
                     if (logDifference) {
                         Debug.Log(
-                            $"Type {headerInfo.ClassName} property count (property[{properties.Length}] / column[{columns.Length}]) not match.");
+                            $"Type '{headerInfo.ClassName}' property count (property[{properties.Length}] / column[{columns.Length}]) not match.");
                     }
                     return false;
                 }
                 foreach (var (p, c) in properties.Zip(columns, (p, c) => (p, c))) {
                     if (p.Name != c.Name) {
                         if (logDifference) {
-                            Debug.Log($"{headerInfo.ClassName}.{p.Name} type not match column {c.Name}.");
+                            Debug.Log($"'{headerInfo.ClassName}.{p.Name}' type not match column '{c.Name}'.");
                         }
                         return false;
                     }
                     if (p.PropertyType != c.Converter.Type) {
                         if (logDifference) {
-                            Debug.Log(
-                                $"{headerInfo.ClassName}.{p.Name} type not match ({p.PropertyType} / {c.Converter.Type}).");
+                            Debug.Log($"'{headerInfo.ClassName}.{p.Name}' type not match ({p.PropertyType} / {c.Converter.Type}).");
                         }
                         return false;
                     }
@@ -228,6 +226,7 @@ namespace Untitled.ConfigDataBuilder.Editor
             if (resourcesPath.Last() != '/') {
                 resourcesPath += "/";
             }
+            var configDataManagerClassName = settings.assemblyNamespace + ".ConfigDataManager";
             var builder = new IndentedStringBuilder { NewLine = "\n" };
             builder.AppendLine("using System.Linq;");
             builder.Append("using ").Append(BaseLibNamespace).AppendLine(";");
@@ -250,7 +249,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                     builder.AppendLine($"public static System.Collections.Generic.IReadOnlyList<{sheet.ClassName}> AllConfig()");
                     builder.IndentWithOpenBrace();
                     {
-                        builder.AppendLine("ConfigDataManager.Initialize();");
+                        builder.AppendLine($"{configDataManagerClassName}.Initialize();");
                         builder.AppendLine("return System.Array.AsReadOnly(_data);");
                     }
                     builder.DedentWithCloseBrace();
@@ -259,15 +258,15 @@ namespace Untitled.ConfigDataBuilder.Editor
                     // keys
                     foreach (var key in sheet.Keys) {
                         builder.AppendLine(
-                            $"private static System.Collections.Generic.Dictionary<{key.Converter.TypeName}, {sheet.ClassName}> _{key.LowerCamelName}Table");
+                            $"private static System.Collections.Generic.Dictionary<{key.Converter.TypeName}, {sheet.ClassName}> _{key.Name}Table");
                         builder.Indent().AppendLine($"= _data.ToDictionary(elem => elem.{key.Name});").Dedent();
                         builder.AppendLine();
-                        builder.AppendLine($"public static {sheet.ClassName} From{key.Name}({key.Converter.TypeName} {key.LowerCamelName})");
+                        builder.AppendLine($"public static {sheet.ClassName} From{key.Name}({key.Converter.TypeName} {key.Name})");
                         builder.IndentWithOpenBrace();
                         {
-                            builder.AppendLine("ConfigDataManager.Initialize();");
+                            builder.AppendLine($"{configDataManagerClassName}.Initialize();");
                             builder.AppendLine(
-                                $"return _{key.LowerCamelName}Table.TryGetValue({key.LowerCamelName}, out var result) ? result : null;");
+                                $"return _{key.Name}Table.TryGetValue({key.Name}, out var result) ? result : null;");
                         }
                         builder.DedentWithCloseBrace();
                         builder.AppendLine();
@@ -349,7 +348,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                     builder.AppendLine($"_data = System.Array.Empty<{sheet.ClassName}>();");
                     builder.DedentWithCloseBrace();
                     foreach (var key in sheet.Keys) {
-                        builder.Append($"_{key.LowerCamelName}Table = _data.ToDictionary(elem => elem.{key.Name});");
+                        builder.Append($"_{key.Name}Table = _data.ToDictionary(elem => elem.{key.Name});");
                     }
                     builder.AppendLine();
                     builder.DedentWithCloseBrace();
@@ -365,8 +364,7 @@ namespace Untitled.ConfigDataBuilder.Editor
         private static string GenerateManagerClassContent(ISheetValueConverterCollection converters, ConfigDataBuilderSettings settings,
             IEnumerable<string> classNames)
         {
-            var builder = new IndentedStringBuilder();
-
+            var builder = new IndentedStringBuilder { NewLine = "\n" };
             builder.AppendLine($"namespace {settings.assemblyNamespace}");
             builder.IndentWithOpenBrace();
             {
@@ -379,6 +377,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                         builder.Append("internal static readonly ").Append(info.ConverterTypeName).Append(" ").AppendLine(info.VariableName);
                         builder.Indent().Append("= new ").Append(info.ConverterTypeName).Append("();").Dedent().AppendLine();
                     }
+                    builder.AppendLine();
                     builder.AppendLine("public static void Reload()");
                     builder.IndentWithOpenBrace();
                     {
@@ -489,8 +488,6 @@ namespace Untitled.ConfigDataBuilder.Editor
             throw new InvalidOperationException($"Invalid Unity Version");
 #endif
 
-            var provider = CodeDomProvider.CreateProvider("C#");
-
             var refAsmLocations = new List<string>();
             foreach (var asmName in refAssemblies) {
                 if (assemblies.TryGetValue(asmName, out var location)) {
@@ -506,7 +503,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                 GenerateExecutable = false,
             };
 
-            var result = provider.CompileAssemblyFromFile(options, fileNames);
+            var result = Helper.CodeProvider.CompileAssemblyFromFile(options, fileNames);
 
             var errors = new List<string>();
             var warns = new List<string>();
