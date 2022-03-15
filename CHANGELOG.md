@@ -1,5 +1,13 @@
 # Untitled Config Data Builder
 
+## [0.1.12] - 2022-03-15
+
+- Allow custom types to be abstract or interfaces.
+
+- Add support for using HTML code (e.g. #FF00FFFF) as `Color` / `Color32`.
+
+- Loosen restriction of class names and property names (now can be any valid C# identifiers except for keywords).
+
 ## [0.1.11] - 2022-03-02
 
 - Fix L10n data exporting.

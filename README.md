@@ -22,7 +22,7 @@ You can install this package via OpenUPM (recommended) or git URL.
 
 - via OpenUPM: Install this [OpenUPM Package](https://openupm.com/packages/com.github.salyu9.untitledconfigdatabuilder/)
 
-- via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder.git#v0.1.11` to package manager.
+- via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder.git#v0.1.12` to package manager.
 
 ## Configuration
 
@@ -109,7 +109,7 @@ class MyBehaviour: MonoBehaviour
 
 File name is insignificant to this tool. You can use any valid name as your config file name.
 
-Sheet name will be used as prefix of the class name, it should contain only A-Z/a-z/0-9 for this tool. For example, sheet 'Skill' will be compiled to class `SkillConfig`.
+The sheet name will be used as prefix of the class name, it should be a valid C# identifier except for keywords. For example, sheet 'Skill' will be compiled to class `SkillConfig`.
 
 Sheet name can contain a period, informing the sheet is part of the full config data of the same config class. The part before period will be the name prefix of the class. Sheets with same name prefix must have the same structure, but can be in different files. For example: data from sheet 'Skill.1' in file 'A.xslx' and sheet 'Skill.abc' in file 'B.xslx' will be merged to data of `SkillConfig`.
 
@@ -415,7 +415,7 @@ namespace MyProject.Editor
                         {
                             jProps.Add(name, new JValue(str));
                         }
-                        else if (value is string[] strs)
+                        else if (value is IReadOnlyList<string> strs)
                         {
                             jProps.Add(name, new JArray(strs.Cast<object>()));
                         }
