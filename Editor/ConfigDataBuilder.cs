@@ -113,6 +113,10 @@ namespace Untitled.ConfigDataBuilder.Editor
         {
             if (Application.isPlaying) {
                 var settings = GetSettings();
+                if (settings.dataExportType != DataExportType.ResourcesBytesAsset || !settings.autoInit) {
+                    Debug.LogError("Cannot runtime reload config data while data export type is not ResourcesBytesAsset or auto-init is not enabled");
+                    return;
+                }
                 var asm = AppDomain.CurrentDomain
                     .GetAssemblies().FirstOrDefault(a => a.GetName().Name == GetAssemblyName(settings));
                 if (asm == null) {
@@ -249,7 +253,9 @@ namespace Untitled.ConfigDataBuilder.Editor
                     builder.AppendLine($"public static System.Collections.Generic.IReadOnlyList<{sheet.ClassName}> AllConfig()");
                     builder.IndentWithOpenBrace();
                     {
-                        builder.AppendLine($"{configDataManagerClassName}.Initialize();");
+                        if (settings.dataExportType == DataExportType.ResourcesBytesAsset && settings.autoInit) {
+                            builder.AppendLine($"{configDataManagerClassName}.Initialize();");
+                        }
                         builder.AppendLine("return System.Array.AsReadOnly(_data);");
                     }
                     builder.DedentWithCloseBrace();
@@ -264,9 +270,10 @@ namespace Untitled.ConfigDataBuilder.Editor
                         builder.AppendLine($"public static {sheet.ClassName} From{key.Name}({key.Converter.TypeName} {key.Name})");
                         builder.IndentWithOpenBrace();
                         {
-                            builder.AppendLine($"{configDataManagerClassName}.Initialize();");
-                            builder.AppendLine(
-                                $"return _{key.Name}Table.TryGetValue({key.Name}, out var result) ? result : null;");
+                            if (settings.dataExportType == DataExportType.ResourcesBytesAsset && settings.autoInit) {
+                                builder.AppendLine($"{configDataManagerClassName}.Initialize();");
+                            }
+                            builder.AppendLine($"return _{key.Name}Table.TryGetValue({key.Name}, out var result) ? result : null;");
                         }
                         builder.DedentWithCloseBrace();
                         builder.AppendLine();
@@ -295,8 +302,41 @@ namespace Untitled.ConfigDataBuilder.Editor
                     builder.DedentWithCloseBrace();
                     builder.AppendLine();
 
-                    // read-binary
-                    builder.AppendLine($"private static {sheet.ClassName}[] ReadBinary(byte[] bytes)");
+                    // constructor
+                    builder.Append(settings.publicConstructors ? "public" : "private");
+                    builder.AppendLine($" {sheet.ClassName}(");
+                    {
+                        var first = true;
+                        foreach (var col in sheet.Header) {
+                            if (col.Info != InfoType.None) {
+                                continue;
+                            }
+                            if (first) {
+                                first = false;
+                                builder.Append("    ");
+                            }
+                            else {
+                                builder.Append("  , ");
+                            }
+                            builder.Append(col.Converter.TypeName).Append(" ").Append(col.Name).AppendLine();
+                        }
+                    }
+                    builder.AppendLine(")");
+                    builder.IndentWithOpenBrace();
+                    {
+                        foreach (var col in sheet.Header) {
+                            if (col.Info != InfoType.None) {
+                                continue;
+                            }
+                            builder.Append("this.").Append(col.Name).Append(" = ").Append(col.Name).AppendLine(";");
+                        }
+                    }
+                    builder.DedentWithCloseBrace();
+                    builder.AppendLine();
+
+                    // load
+                    builder.Append(settings.dataExportType == DataExportType.ResourcesBytesAsset && settings.autoInit ? "private" : "public");
+                    builder.AppendLine($" static {sheet.ClassName}[] Load(byte[] bytes)");
                     builder.IndentWithOpenBrace();
                     {
                         builder.AppendLine("using (var reader = new System.IO.BinaryReader(new System.IO.MemoryStream(bytes))) ")
@@ -306,14 +346,24 @@ namespace Untitled.ConfigDataBuilder.Editor
                             builder.AppendLine("for (var i = 0; i < result.Length; ++i) ");
                             builder.IndentWithOpenBrace();
                             {
-                                builder.AppendLine($"result[i] = new {sheet.ClassName} {{");
+                                builder.AppendLine($"result[i] = new {sheet.ClassName}(");
                                 builder.Indent();
+                                var first = true;
                                 foreach (var col in sheet.Header) {
-                                    if (col.Info != InfoType.None) continue;
-                                    builder.AppendLine($"{col.Name} = {col.Converter.ReadBinaryExp("reader")},");
+                                    if (col.Info != InfoType.None) {
+                                        continue;
+                                    }
+                                    if (first) {
+                                        first = false;
+                                        builder.Append("    ");
+                                    }
+                                    else {
+                                        builder.Append("  , ");
+                                    }
+                                    builder.AppendLine(col.Converter.ReadBinaryExp("reader"));
                                 }
                                 builder.Dedent();
-                                builder.AppendLine("};");
+                                builder.AppendLine(");");
                             }
                         }
                         builder.DedentWithCloseBrace();
@@ -323,36 +373,38 @@ namespace Untitled.ConfigDataBuilder.Editor
                     builder.DedentWithCloseBrace();
                     builder.AppendLine();
 
-                    // reload
-                    builder.AppendLine("internal static void Reload()");
-                    builder.IndentWithOpenBrace();
-                    builder.AppendLine(
-                        $"var asset = UnityEngine.Resources.Load<UnityEngine.TextAsset>(\"{resourcesPath}{sheet.ClassName}\");");
-                    builder.AppendLine("if (asset != null)");
-                    builder.IndentWithOpenBrace();
-                    builder.AppendLine("try");
-                    builder.IndentWithOpenBrace();
-                    builder.AppendLine("_data = ReadBinary(asset.bytes);");
-                    builder.DedentWithCloseBrace();
-                    builder.AppendLine("catch (System.Exception e)");
-                    builder.IndentWithOpenBrace();
-                    builder.AppendLine(
-                        $"UnityEngine.Debug.LogError($\"Failed to load {sheet.ClassName} data: {{e.Message}}, try reimport config data\");");
-                    builder.DedentWithCloseBrace();
-                    builder.AppendLine("UnityEngine.Resources.UnloadAsset(asset);");
-                    builder.DedentWithCloseBrace();
-                    builder.AppendLine("else");
-                    builder.IndentWithOpenBrace();
-                    builder.AppendLine(
-                        @$"UnityEngine.Debug.LogError(""Cannot load config data of '{sheet.ClassName}', please reimport config data"");");
-                    builder.AppendLine($"_data = System.Array.Empty<{sheet.ClassName}>();");
-                    builder.DedentWithCloseBrace();
-                    foreach (var key in sheet.Keys) {
-                        builder.Append($"_{key.Name}Table = _data.ToDictionary(elem => elem.{key.Name});");
+                    // auto-init
+                    if (settings.dataExportType == DataExportType.ResourcesBytesAsset && settings.autoInit) {
+                        builder.AppendLine("internal static void Reload()");
+                        builder.IndentWithOpenBrace();
+                        builder.AppendLine(
+                            $"var asset = UnityEngine.Resources.Load<UnityEngine.TextAsset>(\"{resourcesPath}{sheet.ClassName}\");");
+                        builder.AppendLine("if (asset != null)");
+                        builder.IndentWithOpenBrace();
+                        builder.AppendLine("try");
+                        builder.IndentWithOpenBrace();
+                        builder.AppendLine("_data = Load(asset.bytes);");
+                        builder.DedentWithCloseBrace();
+                        builder.AppendLine("catch (System.Exception e)");
+                        builder.IndentWithOpenBrace();
+                        builder.AppendLine(
+                            $"UnityEngine.Debug.LogError($\"Failed to load {sheet.ClassName} data: {{e.Message}}, try reimport config data\");");
+                        builder.DedentWithCloseBrace();
+                        builder.AppendLine("UnityEngine.Resources.UnloadAsset(asset);");
+                        builder.DedentWithCloseBrace();
+                        builder.AppendLine("else");
+                        builder.IndentWithOpenBrace();
+                        builder.AppendLine(
+                            @$"UnityEngine.Debug.LogError(""Cannot load config data of '{sheet.ClassName}', please reimport config data"");");
+                        builder.AppendLine($"_data = System.Array.Empty<{sheet.ClassName}>();");
+                        builder.DedentWithCloseBrace();
+                        foreach (var key in sheet.Keys) {
+                            builder.Append($"_{key.Name}Table = _data.ToDictionary(elem => elem.{key.Name});");
+                        }
+                        builder.AppendLine();
+                        builder.DedentWithCloseBrace();
+                        builder.AppendLine();
                     }
-                    builder.AppendLine();
-                    builder.DedentWithCloseBrace();
-                    builder.AppendLine();
                 }
                 builder.DedentWithCloseBrace();
             }
@@ -371,23 +423,14 @@ namespace Untitled.ConfigDataBuilder.Editor
                 builder.AppendLine("public static class ConfigDataManager");
                 builder.IndentWithOpenBrace();
                 {
-                    builder.AppendLine("private static bool _initialized;");
-                    builder.AppendLine();
+                    // converters
                     foreach (var info in converters.EnumerateConverterInfo()) {
                         builder.Append("internal static readonly ").Append(info.ConverterTypeName).Append(" ").AppendLine(info.VariableName);
                         builder.Indent().Append("= new ").Append(info.ConverterTypeName).Append("();").Dedent().AppendLine();
                     }
                     builder.AppendLine();
-                    builder.AppendLine("public static void Reload()");
-                    builder.IndentWithOpenBrace();
-                    {
-                        foreach (var name in classNames) {
-                            builder.AppendLine($"{name}.Reload();");
-                        }
-                    }
-                    builder.DedentWithCloseBrace();
-                    builder.AppendLine();
-
+                    
+                    // ReadArray<T>
                     builder.AppendLine(
                         "internal static T[] ReadArray<T>(System.IO.BinaryReader reader, System.Func<System.IO.BinaryReader, T> readFunc)");
                     builder.IndentWithOpenBrace();
@@ -405,6 +448,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                     builder.DedentWithCloseBrace();
                     builder.AppendLine();
 
+                    // ReadList<T>
                     builder.AppendLine("internal static System.Collections.Generic.IReadOnlyList<T> ReadList<T>(");
                     builder.Indent();
                     builder.AppendLine("System.IO.BinaryReader reader, System.Func<System.IO.BinaryReader, T> readFunc)");
@@ -424,6 +468,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                     builder.DedentWithCloseBrace();
                     builder.AppendLine();
 
+                    // ReadDictionary<TKey, TValue>
                     builder.AppendLine("internal static System.Collections.Generic.IReadOnlyDictionary<TKey, TValue> ReadDictionary<TKey, TValue>(");
                     builder.Indent();
                     builder.AppendLine("System.IO.BinaryReader reader,");
@@ -446,14 +491,28 @@ namespace Untitled.ConfigDataBuilder.Editor
                     }
                     builder.DedentWithCloseBrace();
 
-                    builder.AppendLine("public static void Initialize()");
-                    builder.IndentWithOpenBrace();
-                    {
-                        builder.AppendLine("if (_initialized) return;");
-                        builder.AppendLine("Reload();");
-                        builder.AppendLine("_initialized = true;");
+                    // Auto-Init
+                    if (settings.dataExportType == DataExportType.ResourcesBytesAsset && settings.autoInit) {
+                        builder.AppendLine("private static bool _initialized;");
+                        builder.AppendLine();
+                        builder.AppendLine("public static void Reload()");
+                        builder.IndentWithOpenBrace();
+                        {
+                            foreach (var name in classNames) {
+                                builder.AppendLine($"{name}.Reload();");
+                            }
+                        }
+                        builder.DedentWithCloseBrace();
+                        builder.AppendLine();
+                        builder.AppendLine("public static void Initialize()");
+                        builder.IndentWithOpenBrace();
+                        {
+                            builder.AppendLine("if (_initialized) return;");
+                            builder.AppendLine("Reload();");
+                            builder.AppendLine("_initialized = true;");
+                        }
+                        builder.DedentWithCloseBrace();
                     }
-                    builder.DedentWithCloseBrace();
                 }
                 builder.DedentWithCloseBrace();
             }
@@ -573,7 +632,19 @@ namespace Untitled.ConfigDataBuilder.Editor
         {
             var settings = GetSettings();
             var converters = SheetValueConverter.GetSheetValueConverters();
-            var dataOutputPath = Path.Combine("Assets/Resources/", settings.dataOutputFolder).Replace("\\", "/");
+            string dataOutputPath;
+            switch (settings.dataExportType) {
+                case DataExportType.ResourcesBytesAsset:
+                    dataOutputPath = Path.Combine("Assets/Resources/", settings.dataOutputFolder).Replace("\\", "/");
+                    break;
+                case DataExportType.OtherBytesAsset:
+                    dataOutputPath = settings.dataOutputFolder.Replace("\\", "/");
+                    break;
+                default:
+                    Debug.Log($"Invalid Data Export Type: {settings.dataExportType}");
+                    return;
+            }
+
             if (dataOutputPath.Length == 0) {
                 Debug.LogError("Config 'Data Output Path' is not set properly.");
                 return;

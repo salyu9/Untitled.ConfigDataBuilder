@@ -7,15 +7,24 @@ namespace Untitled.ConfigDataBuilder.Editor
 {
     internal class ConfigDataBuilderSettings : ScriptableObject
     {
-        internal const string ConfigDataBuilderSettingsPath = "Assets/Editor/ConfigDataBuilderSettings.asset";
+        private const string ConfigDataBuilderSettingsPath = "Assets/Editor/ConfigDataBuilderSettings.asset";
 
         [SerializeField] internal string sourceFolder = "Assets/";
         [SerializeField] internal string assemblyNamespace = "";
         [SerializeField] internal string assemblyOutputPath = "Assets/ConfigData/ConfigData.dll";
-        [SerializeField] internal string dataOutputFolder = "ConfigData/";
         [SerializeField] internal string l10nCustomExporterType = "";
         [SerializeField] internal string[] customTypesAssemblies = Array.Empty<string>();
         [SerializeField] internal string[] importingAssemblies = Array.Empty<string>();
+
+        [SerializeField] internal bool publicConstructors = false;
+
+        [SerializeField] internal DataExportType dataExportType = DataExportType.ResourcesBytesAsset;
+
+        [SerializeField] internal string dataOutputFolder = "ConfigData/";
+        
+        // ResourcesBytesprivate
+        //     if runtimeprivate, XConfig.Load will be internal
+        [SerializeField] internal bool autoInit = true;
 
         internal static ConfigDataBuilderSettings TryGetSettings()
         {
@@ -40,5 +49,11 @@ namespace Untitled.ConfigDataBuilder.Editor
         {
             return new SerializedObject(GetOrCreateSettings());
         }
+    }
+
+    internal enum DataExportType
+    {
+        ResourcesBytesAsset,
+        OtherBytesAsset,
     }
 }

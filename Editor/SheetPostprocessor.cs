@@ -31,8 +31,8 @@ namespace Untitled.ConfigDataBuilder.Editor
                 EditorApplication.delayCall += AssetDatabase.Refresh;
             }
 
-            else if (Application.isPlaying && importedAssets.Any(
-                asset => asset.StartsWith(outputFolder))) {
+            else if (settings.dataExportType == DataExportType.ResourcesBytesAsset && settings.autoInit
+                  && Application.isPlaying && importedAssets.Any(asset => asset.StartsWith(outputFolder))) {
                 ConfigDataBuilder.RuntimeReload();
             }
         }
