@@ -336,17 +336,17 @@ namespace Untitled.ConfigDataBuilder.Editor
 
                     // load
                     builder.Append(settings.dataExportType == DataExportType.ResourcesBytesAsset && settings.autoInit ? "private" : "public");
-                    builder.AppendLine($" static {sheet.ClassName}[] Load(byte[] bytes)");
+                    builder.AppendLine(" static void Load(byte[] bytes)");
                     builder.IndentWithOpenBrace();
                     {
                         builder.AppendLine("using (var reader = new System.IO.BinaryReader(new System.IO.MemoryStream(bytes))) ")
                             .IndentWithOpenBrace();
                         {
-                            builder.AppendLine($"var result = new {sheet.ClassName}[reader.ReadInt32()];");
-                            builder.AppendLine("for (var i = 0; i < result.Length; ++i) ");
+                            builder.AppendLine($"var data = new {sheet.ClassName}[reader.ReadInt32()];");
+                            builder.AppendLine("for (var i = 0; i < data.Length; ++i) ");
                             builder.IndentWithOpenBrace();
                             {
-                                builder.AppendLine($"result[i] = new {sheet.ClassName}(");
+                                builder.AppendLine($"data[i] = new {sheet.ClassName}(");
                                 builder.Indent();
                                 var first = true;
                                 foreach (var col in sheet.Header) {
@@ -365,9 +365,13 @@ namespace Untitled.ConfigDataBuilder.Editor
                                 builder.Dedent();
                                 builder.AppendLine(");");
                             }
+                            builder.DedentWithCloseBrace();
+
+                            builder.AppendLine("_data = data;");
+                            foreach (var key in sheet.Keys) {
+                                builder.AppendLine($"_{key.Name}Table = _data.ToDictionary(elem => elem.{key.Name});");
+                            }
                         }
-                        builder.DedentWithCloseBrace();
-                        builder.AppendLine("return result;");
                         builder.DedentWithCloseBrace();
                     }
                     builder.DedentWithCloseBrace();
@@ -377,33 +381,37 @@ namespace Untitled.ConfigDataBuilder.Editor
                     if (settings.dataExportType == DataExportType.ResourcesBytesAsset && settings.autoInit) {
                         builder.AppendLine("internal static void Reload()");
                         builder.IndentWithOpenBrace();
-                        builder.AppendLine(
-                            $"var asset = UnityEngine.Resources.Load<UnityEngine.TextAsset>(\"{resourcesPath}{sheet.ClassName}\");");
-                        builder.AppendLine("if (asset != null)");
-                        builder.IndentWithOpenBrace();
-                        builder.AppendLine("try");
-                        builder.IndentWithOpenBrace();
-                        builder.AppendLine("_data = Load(asset.bytes);");
-                        builder.DedentWithCloseBrace();
-                        builder.AppendLine("catch (System.Exception e)");
-                        builder.IndentWithOpenBrace();
-                        builder.AppendLine(
-                            $"UnityEngine.Debug.LogError($\"Failed to load {sheet.ClassName} data: {{e.Message}}, try reimport config data\");");
-                        builder.DedentWithCloseBrace();
-                        builder.AppendLine("UnityEngine.Resources.UnloadAsset(asset);");
-                        builder.DedentWithCloseBrace();
-                        builder.AppendLine("else");
-                        builder.IndentWithOpenBrace();
-                        builder.AppendLine(
-                            @$"UnityEngine.Debug.LogError(""Cannot load config data of '{sheet.ClassName}', please reimport config data"");");
-                        builder.AppendLine($"_data = System.Array.Empty<{sheet.ClassName}>();");
-                        builder.DedentWithCloseBrace();
-                        foreach (var key in sheet.Keys) {
-                            builder.Append($"_{key.Name}Table = _data.ToDictionary(elem => elem.{key.Name});");
+                        {
+                            builder.AppendLine(
+                                $"var asset = UnityEngine.Resources.Load<UnityEngine.TextAsset>(\"{resourcesPath}{sheet.ClassName}\");");
+                            builder.AppendLine("if (asset != null)");
+                            builder.IndentWithOpenBrace();
+                            {
+                                builder.AppendLine("try");
+                                builder.IndentWithOpenBrace();
+                                {
+                                    builder.AppendLine("Load(asset.bytes);");
+                                }
+                                builder.DedentWithCloseBrace();
+                                builder.AppendLine("catch (System.Exception e)");
+                                builder.IndentWithOpenBrace();
+                                {
+                                    builder.AppendLine(
+                                        $"UnityEngine.Debug.LogError($\"Failed to load {sheet.ClassName} data: {{e.Message}}, try reimport config data\");");
+                                }
+                                builder.DedentWithCloseBrace();
+                                builder.AppendLine("UnityEngine.Resources.UnloadAsset(asset);");
+                                builder.DedentWithCloseBrace();
+                            }
+                            builder.AppendLine("else");
+                            builder.IndentWithOpenBrace();
+                            {
+                                builder.AppendLine(
+                                    @$"UnityEngine.Debug.LogError(""Cannot load config data of '{sheet.ClassName}', please reimport config data"");");
+                            }
+                            builder.DedentWithCloseBrace();
                         }
-                        builder.AppendLine();
                         builder.DedentWithCloseBrace();
-                        builder.AppendLine();
                     }
                 }
                 builder.DedentWithCloseBrace();
