@@ -1,5 +1,6 @@
 # Untitled Config Data Builder
 
+[![License: Unlicense](https://img.shields.io/badge/license-Unlicense-blue.svg)](http://unlicense.org/)
 [![openupm](https://img.shields.io/npm/v/com.github.salyu9.untitledconfigdatabuilder?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.github.salyu9.untitledconfigdatabuilder/)
 
 Lightweight config building tool for using excel sheet data in unity 3D.
@@ -14,7 +15,7 @@ Unity 2019.4 ~ Unity 2021.2
 
 ⚠️ _Warning_: This package is under development and may change at any time, please use at your own risk.
 
-⚠️ _Warning_: This tool uses [ExcelDataReader](https://github.com/ExcelDataReader/ExcelDataReader) as an editor-only plugin. If your project has another copy of ExcelDataReader dll, you can download sources of this repository and install Untitled Config Data Builder as a local package.
+⚠️ _Warning_: This tool uses [ExcelDataReader](https://github.com/ExcelDataReader/ExcelDataReader) as an editor-only plugin. If your project has another copy of ExcelDataReader dll, you can download sources of this repository, remove ExcelDataReader.dll and add this tool as a local package.
 
 ## Installation
 
