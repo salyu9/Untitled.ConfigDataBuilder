@@ -1,13 +1,39 @@
 # Untitled Config Data Builder
 
-[![License: Unlicense](https://img.shields.io/badge/license-Unlicense-blue.svg)](http://unlicense.org/)
-[![openupm](https://img.shields.io/npm/v/com.github.salyu9.untitledconfigdatabuilder?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.github.salyu9.untitledconfigdatabuilder/)
+[![License: Unlicense](https://img.shields.io/badge/license-Unlicense-blue.svg)](http://unlicense.org/) [![openupm](https://img.shields.io/npm/v/com.github.salyu9.untitledconfigdatabuilder?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.github.salyu9.untitledconfigdatabuilder/)
 
 Lightweight config building tool for using excel sheet data in unity 3D.
 
 Sheet data construction will be compiled to an assembly (dll) that contains several classes that can be used by user scripts.
 
 Sheet data will be export to bytes assets in resources folder, which can be loaded and used via the assembly.
+
+## Table of contents
+
+<!-- @import "[TOC]" {cmd="toc" depthFrom=1 depthTo=6 orderedList=false} -->
+
+<!-- code_chunk_output -->
+
+- [Untitled Config Data Builder](#untitled-config-data-builder)
+  - [Table of contents](#table-of-contents)
+  - [Requirements](#requirements)
+  - [Installation](#installation)
+  - [Configuration](#configuration)
+  - [Basic Usage](#basic-usage)
+    - [Class name](#class-name)
+    - [Sheet data structure](#sheet-data-structure)
+    - [Property types](#property-types)
+    - [Separators](#separators)
+    - [Escaping](#escaping)
+    - [Flags](#flags)
+    - [Recompile & auto reimport & play mode reload](#recompile-auto-reimport-play-mode-reload)
+  - [Advanced Usage](#advanced-usage)
+    - [Custom types](#custom-types)
+    - [Multi-Segment types](#multi-segment-types)
+    - [Custom flag handler](#custom-flag-handler)
+    - [Localization data](#localization-data)
+
+<!-- /code_chunk_output -->
 
 ## Requirements
 
@@ -43,7 +69,7 @@ Use "Project Settings > Config Data Builder" to modify config building settings.
 
 - Importing assemblies: Extra assemblies that the compiled assembly should reference. Custom type assemblies will be auto imported.
 
-## Usage
+## Basic Usage
 
 This tool can read data from .xlsx files and .fods files (Libre Office plain text format). Place sheet files in this structure for example:
 
@@ -175,6 +201,61 @@ Escaping using "`\`" is allowed in flags. It is useful to use `\n` as separator 
 ```
 
 Which will be converted to `[[[1,2,3], [4,5]], [[7,8], [9,10,11]]]`.
+
+### Flags
+
+Flag row defines special handling of properties. A column (property) can have multiple flags, separated by '|'. Some flag can have a value after it with a colon. Example: `separator:# | key`.
+
+Supported flags are list below.
+
+- `key`
+
+    Indicates that value of this property is unique in this config and can be used as a dictionary key. Multiple key properties are allowed.
+
+    Rows with its key property leaved empty will be ignored.
+
+    ![EmptyKey](Doc/Images/empty-key.png)
+
+    In the config class, each key property corresponds to a dictionary and a query method. For example, if 'Skill' sheet has an `int` key property 'Id' and a `string` key property 'Name', you can query config row with code like this:
+
+    ```csharp
+    SkillConfig config123 = SkillConfig.FromId(123);
+    SkillConfig configABC = SkillConfig.FromName("ABC");
+    ```
+
+- `ignored`
+
+    This property is ignored.
+
+- `info:<info-type>`
+
+    This property contains special information about each row. Info property will not be compiled into config class nor be exported.
+
+    Currently the only supported `info-type` is `L10n`, which indicates that this property data should be exported as localization source data, see [Localization Data](#localization-data) for more details.
+
+- `default:<default-value>`
+
+    Specify the default value of this property if leaved empty.
+
+- `separator:<separator>`
+
+    Specify the separators used for vector/color/array/dictionary or custom multi-segment types.
+
+- `ignore-empty`
+
+    Indicates that array property should ignore empty segments.
+
+### Recompile & auto reimport & play mode reload
+
+When source files are edited and saved, Untitled Config Builder will try to reimport source files and export config data. You needn't do anything if the construction is not changed. If editor is in play mode, config data will also be reloaded automatically, call to `AllConfigs()` and `From<Key>()` methods will reflect new changes. But config class instances won't change after acquired.
+
+If config construction has changed, reimporting procedure will fail with a warning reported: "Config dll types mismatch. Rebuilding config required." In this case, you should use menu "Tools > Config Data > Rebuild Config" to rebuild config assembly and reimport config data.
+
+You can force rebuild all via "Tools > Config Data > Force rebuild Config". You can also reimport data manually using "Tools > Config Data > Reimport data".
+
+⚠️ _Warning_: if you changed your custom type converters, you may need to force rebuild the assembly.
+
+## Advanced Usage
 
 ### Custom types
 
@@ -326,48 +407,48 @@ The default separator for a custom multi-segment type is "`,`". You can assign a
 
 This type can still be used in arrays or dictionaries. but be aware of separators. Better explicitly specify separators in flags.
 
-### Flags
+### Custom flag handler
 
-Flag row defines special handling of properties. A column (property) can have multiple flags, separated by '|'. Some flag can have a value after it with a colon. Example: `separator:# | key`.
+Flags are handled before converter creation and default value evaluation.
 
-Supported flags are list below.
+You can make custom flag handlers to modify properties of columns. You can modify type names, ignore specific columns, or set default value of columns, thus to change converter creating behaviour.
 
-- `key`
+One of the use-cases is that you want declare some columns to be used out of unity (such as used in server). In this case you can make a flag handler to ignore columns that are marked as `server-only`:
 
-    Indicates that value of this property is unique in this config and can be used as a dictionary key. Multiple key properties are allowed.
+```csharp
+using Untitled.ConfigDataBuilder.Editor;
 
-    Rows with its key property leaved empty will be ignored.
+[FlagHandler("server-only")]
+public class ServerOnlyFlagHandler : IFlagHandler
+{
+    public void HandleColumn(ColumnInfo columnInfo)
+    {
+        columnInfo.IsIgnored = true;
+    }
+}
+```
 
-    ![EmptyKey](Doc/Images/empty-key.png)
+Or you can make custom default values:
 
-    In the config class, each key property corresponds to a dictionary and a query method. For example, if 'Skill' sheet has an `int` key property 'Id' and a `string` key property 'Name', you can query config row with code like this:
-
-    ```csharp
-    SkillConfig config123 = SkillConfig.FromId(123);
-    SkillConfig configABC = SkillConfig.FromName("ABC");
-    ```
-
-- `ignored`
-
-    This property is ignored.
-
-- `info:<info-type>`
-
-    This property contains special information about each row. Info property will not be compiled into config class nor be exported.
-
-    Currently the only supported `info-type` is `L10n`, which indicates that this property data should be exported as localization source data, see [Localization Data](#localization-data) for more details.
-
-- `default:<default-value>`
-
-    Specify the default value of this property if leaved empty.
-
-- `separator:<separator>`
-
-    Specify the separators used for vector/color/array/dictionary or custom multi-segment types.
-
-- `ignore-empty`
-
-    Indicates that array property should ignore empty segments.
+```csharp
+[FlagHandler("dir-default")]
+public class Vector3DefaultValueHandler : IFlagHandlerWithArgument
+{
+    public void HandleColumn(ColumnInfo columnInfo, string arg)
+    {
+        // Set DefaultValue will override RawDefaultValue set by 'default:<value>'
+        columnInfo.DefaultValue = arg switch {
+            "up"      => Vector3.up,
+            "down"    => Vector3.down,
+            "forward" => Vector3.forward,
+            "back"    => Vector3.back,
+            "left"    => Vector3.left,
+            "right"   => Vector3.right,
+            _         => throw new ArgumentOutOfRangeException(nameof(arg), arg, null)
+        };
+    }
+}
+```
 
 ### Localization data
 
@@ -461,13 +542,3 @@ File: Assets/StreamingAssets/Localization/en/Monster.json
 The exporter will be invoked when config data are reimported. This example exporter writes localization source to json files in streaming assets folder, which can be load at runtime. You can make your own exporter and integrate to your localization solution.
 
 - Sometimes after the config dll regeneration, script code may failed to compile due to config structure changes. The exporter type may not exists and exporting will fail. Just fix your code and do `Tools > Config Data > Reimport Data`, the localization source data will be exported.
-
-### Recompile & auto reimport & play mode reload
-
-When source files are edited and saved, Untitled Config Builder will try to reimport source files and export config data. You needn't do anything if the construction is not changed. If editor is in play mode, config data will also be reloaded automatically, call to `AllConfigs()` and `From<Key>()` methods will reflect new changes. But config class instances won't change after acquired.
-
-If config construction has changed, reimporting procedure will fail with a warning reported: "Config dll types mismatch. Rebuilding config required." In this case, you should use menu "Tools > Config Data > Rebuild Config" to rebuild config assembly and reimport config data.
-
-You can force rebuild all via "Tools > Config Data > Force rebuild Config". You can also reimport data manually using "Tools > Config Data > Reimport data".
-
-⚠️ _Warning_: if you changed your custom type converters, you may need to force rebuild the assembly.

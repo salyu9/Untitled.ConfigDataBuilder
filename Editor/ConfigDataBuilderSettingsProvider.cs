@@ -21,8 +21,10 @@ namespace Untitled.ConfigDataBuilder.Editor
             public static readonly GUIContent AssemblyOutputPath = new GUIContent("Assembly output path",
                 "The path of compiled assembly, e.g. 'Assets/ConfigData/ConfigData.dll'.");
 
-            public static readonly GUIContent PublicConstructors = new GUIContent("Public Constructors",
+            public static readonly GUIContent PublicConstructors = new GUIContent("Public constructors",
                 "Generate public constructors for config classes. If not enabled, your script will not able to create instances of config classes");
+
+            public static readonly GUIContent FlagRowCount = new GUIContent("Flag row count");
 
             public static readonly GUIContent DataExportType = new GUIContent("Data Export Type",
                 "Control how the config data are exported.\n" + 
@@ -49,40 +51,32 @@ namespace Untitled.ConfigDataBuilder.Editor
             : base(path, scopes, keywords)
         { }
 
-        private ReorderableList GetReorderableList(ref ReorderableList cache, SerializedObject @object, string propertyName)
+        private static ReorderableList GetReorderableList(SerializedObject @object, string propertyName)
         {
-            if (cache != null) {
-                return cache;
-            }
-
             var property = @object.FindProperty(propertyName);
-            cache = new ReorderableList(@object, property, draggable: true, displayHeader: false, displayAddButton: true, displayRemoveButton: true) {
+            return new ReorderableList(@object, property, draggable: true, displayHeader: false, displayAddButton: true, displayRemoveButton: true) {
                 drawElementCallback = (rect, index, active, focused) => {
                     var elem = property.GetArrayElementAtIndex(index);
                     EditorGUI.PropertyField(rect, elem, GUIContent.none);
                 },
-                elementHeightCallback = index => EditorGUI.GetPropertyHeight(property.GetArrayElementAtIndex(index))
+                elementHeightCallback = index => {
+                    if (index < 0 || index >= property.arraySize) {
+                        return 0;
+                    }
+                    return EditorGUI.GetPropertyHeight(property.GetArrayElementAtIndex(index));
+                }
             };
-            return cache;
         }
 
         private ReorderableList _customTypesAssembliesList;
 
-        private ReorderableList GetCustomTypesAssembliesList(SerializedObject @object)
-        {
-            return GetReorderableList(ref _customTypesAssembliesList, @object, nameof(ConfigDataBuilderSettings.customTypesAssemblies));
-        }
-
         private ReorderableList _importingAssembliesList;
-
-        private ReorderableList GetImportingAssembliesList(SerializedObject @object)
-        {
-            return GetReorderableList(ref _importingAssembliesList, @object, nameof(ConfigDataBuilderSettings.importingAssemblies));
-        }
 
         public override void OnActivate(string searchContext, VisualElement rootElement)
         {
             _settings = ConfigDataBuilderSettings.GetSerializedSettings();
+            _customTypesAssembliesList = GetReorderableList(_settings, nameof(ConfigDataBuilderSettings.customTypesAssemblies));
+            _importingAssembliesList = GetReorderableList(_settings, nameof(ConfigDataBuilderSettings.importingAssemblies));
         }
 
         public override void OnDeactivate()
@@ -94,7 +88,7 @@ namespace Untitled.ConfigDataBuilder.Editor
         public override void OnGUI(string searchContext)
         {
             const int labelWidth = 200;
-            
+
             EditorGUILayout.Separator();
 
             EditorGUILayout.BeginHorizontal();
@@ -115,6 +109,11 @@ namespace Untitled.ConfigDataBuilder.Editor
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField(Styles.PublicConstructors, GUILayout.Width(labelWidth));
             EditorGUILayout.PropertyField(_settings.FindProperty(nameof(ConfigDataBuilderSettings.publicConstructors)), GUIContent.none);
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField(Styles.FlagRowCount, GUILayout.Width(labelWidth));
+            EditorGUILayout.PropertyField(_settings.FindProperty(nameof(ConfigDataBuilderSettings.flagRowCount)), GUIContent.none);
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.BeginHorizontal();
@@ -151,12 +150,12 @@ namespace Untitled.ConfigDataBuilder.Editor
 
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField(Styles.CustomTypesAssemblies, GUILayout.Width(labelWidth));
-            GetCustomTypesAssembliesList(_settings).DoLayoutList();
+            _customTypesAssembliesList.DoLayoutList();
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField(Styles.ImportingAssemblies, GUILayout.Width(labelWidth));
-            GetImportingAssembliesList(_settings).DoLayoutList();
+            _importingAssembliesList.DoLayoutList();
             EditorGUILayout.EndHorizontal();
 
             _settings.ApplyModifiedPropertiesWithoutUndo();

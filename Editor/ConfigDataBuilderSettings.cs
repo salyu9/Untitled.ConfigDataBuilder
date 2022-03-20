@@ -17,6 +17,7 @@ namespace Untitled.ConfigDataBuilder.Editor
         [SerializeField] internal string[] importingAssemblies = Array.Empty<string>();
 
         [SerializeField] internal bool publicConstructors = false;
+        [SerializeField] [Range(1, 10)] internal int flagRowCount = 1;
 
         [SerializeField] internal DataExportType dataExportType = DataExportType.ResourcesBytesAsset;
 

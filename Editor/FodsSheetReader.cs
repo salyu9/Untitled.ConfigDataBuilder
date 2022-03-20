@@ -15,7 +15,7 @@ namespace Untitled.ConfigDataBuilder.Editor
 
         private readonly XmlReader _reader;
         private string _currentName;
-        private object[] _currentRow;
+        private string[] _currentRow;
         private int _currentRowRepeat;
         private int _rowGroupLevel;
 
@@ -124,13 +124,13 @@ namespace Untitled.ConfigDataBuilder.Editor
                 _reader.MoveToElement();
             }
             _reader.ReadStartElement();
-            var data = new List<object>();
+            var data = new List<string>();
             while (FindElement(Table + "table-cell")) {
                 var elem = (XElement)XNode.ReadFrom(_reader);
                 elem.Elements().Where(e => e.Name == Office + "annotation").Remove();
                 var repeatAttr = elem.Attribute(Table + "number-columns-repeated");
                 var repeat = repeatAttr != null ? int.Parse(repeatAttr.Value) : 1;
-                object cellValue;
+                string cellValue;
                 if (elem.IsEmpty) {
                     cellValue = null;
                 }
@@ -141,8 +141,8 @@ namespace Untitled.ConfigDataBuilder.Editor
                     }
                     cellValue = type.Value switch {
                         "string"  => GetStringFromXElement(elem),
-                        "float"   => double.Parse(GetStringFromXElement(elem)),
-                        "boolean" => bool.Parse(GetStringFromXElement(elem)),
+                        "float"   => GetStringFromXElement(elem),
+                        "boolean" => GetStringFromXElement(elem),
                         _         => throw new InvalidDataException($"{GetPositionInfo()}: Unknown type '{type}'")
                     };
                 }
@@ -237,7 +237,7 @@ namespace Untitled.ConfigDataBuilder.Editor
 
         public bool IsNull(int index) => _currentRow[index] is null;
 
-        public object GetValue(int index) => _currentRow[index];
+        public string Get(int index) => _currentRow[index];
 
         public void Dispose()
         {

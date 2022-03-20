@@ -14,6 +14,6 @@ namespace Untitled.ConfigDataBuilder.Editor
 
         public bool IsNull(int index);
 
-        public object GetValue(int index);
+        public string Get(int index);
     }
 }

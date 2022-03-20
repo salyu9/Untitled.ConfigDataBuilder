@@ -22,6 +22,25 @@ namespace Untitled.ConfigDataBuilder.Editor
             return ConfigDataBuilderSettings.GetOrCreateSettings();
         }
 
+        private static SheetDataReaderContext GetReaderContext(ConfigDataBuilderSettings settings)
+        {
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies()
+                .Where(a => !a.IsDynamic)
+                .ToLookup(a => a.GetName().Name)
+                .ToDictionary(a => a.Key, a => a.First());
+            var customTypesAssemblies = new List<Assembly>();
+            foreach (var asmName in settings.customTypesAssemblies) {
+                if (assemblies.TryGetValue(asmName, out var asm)) {
+                    customTypesAssemblies.Add(asm);
+                }
+                else {
+                    Debug.LogError($"Cannot find custom types assembly '{asmName}'", settings);
+                }
+            }
+
+            return new SheetDataReaderContext(customTypesAssemblies, TypeCache.GetTypesWithAttribute<FlagHandlerAttribute>(), settings.flagRowCount);
+        }
+
         private static string GetAssemblyName(ConfigDataBuilderSettings settings)
         {
             return Path.GetFileNameWithoutExtension(settings.assemblyOutputPath);
@@ -91,14 +110,14 @@ namespace Untitled.ConfigDataBuilder.Editor
 
                 if (!Directory.Exists(path)) Directory.CreateDirectory(path);
 
-                var converters = SheetValueConverter.GetSheetValueConverters();
-                var sheets = SheetData.ReadAllHeaders(converters, EnumerateSheetFiles());
+                var context = GetReaderContext(settings);
+                var sheets = SheetData.ReadAllHeaders(context, EnumerateSheetFiles());
                 var classNames = new List<string>();
                 foreach (var sheet in sheets) {
                     classNames.Add(sheet.ClassName);
                     File.WriteAllText(Path.Combine(path, sheet.ClassName + ".cs"), GenerateConfigClassContent(settings, sheet));
                 }
-                File.WriteAllText(Path.Combine(path, "ConfigDataManager.cs"), GenerateManagerClassContent(converters, settings, classNames));
+                File.WriteAllText(Path.Combine(path, "ConfigDataManager.cs"), GenerateManagerClassContent(context, settings, classNames));
 
                 EditorUtility.RevealInFinder(Path.Combine(path, "ConfigDataManager.cs"));
             }
@@ -154,7 +173,7 @@ namespace Untitled.ConfigDataBuilder.Editor
         {
             var files = EnumerateSheetFiles().ToList();
             var settings = GetSettings();
-            var converters = SheetValueConverter.GetSheetValueConverters();
+            var context = GetReaderContext(settings);
 
             if (!File.Exists(settings.assemblyOutputPath)) {
                 return files.Count == 0;
@@ -173,7 +192,7 @@ namespace Untitled.ConfigDataBuilder.Editor
             }
             List<SheetData> headerInfoTable;
             try {
-                headerInfoTable = SheetData.ReadAllHeaders(converters, files);
+                headerInfoTable = SheetData.ReadAllHeaders(context, files);
             }
             catch (Exception exc) {
                 if (logDifference) {
@@ -421,7 +440,7 @@ namespace Untitled.ConfigDataBuilder.Editor
             return builder.ToString();
         }
 
-        private static string GenerateManagerClassContent(ISheetValueConverterCollection converters, ConfigDataBuilderSettings settings,
+        private static string GenerateManagerClassContent(SheetDataReaderContext context, ConfigDataBuilderSettings settings,
             IEnumerable<string> classNames)
         {
             var builder = new IndentedStringBuilder { NewLine = "\n" };
@@ -432,7 +451,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                 builder.IndentWithOpenBrace();
                 {
                     // converters
-                    foreach (var info in converters.EnumerateConverterInfo()) {
+                    foreach (var info in context.EnumerateConverterInfo()) {
                         builder.Append("internal static readonly ").Append(info.ConverterTypeName).Append(" ").AppendLine(info.VariableName);
                         builder.Indent().Append("= new ").Append(info.ConverterTypeName).Append("();").Dedent().AppendLine();
                     }
@@ -608,8 +627,8 @@ namespace Untitled.ConfigDataBuilder.Editor
                 EditorUtility.DisplayProgressBar("Info", "Building config", 0);
                 var classNames = new List<string>();
                 var fileNames = new List<string>();
-                var converters = SheetValueConverter.GetSheetValueConverters();
-                foreach (var sheet in SheetData.ReadAllHeaders(converters, EnumerateSheetFiles())) {
+                var context = GetReaderContext(settings);
+                foreach (var sheet in SheetData.ReadAllHeaders(context, EnumerateSheetFiles())) {
                     var fileName = folder + "/" + sheet.ClassName + ".cs";
                     File.WriteAllText(fileName, GenerateConfigClassContent(settings, sheet));
                     classNames.Add(sheet.ClassName);
@@ -617,7 +636,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                 }
 
                 var managerFileName = folder + "/" + "ConfigDataManager.cs";
-                File.WriteAllText(managerFileName, GenerateManagerClassContent(converters, settings, classNames));
+                File.WriteAllText(managerFileName, GenerateManagerClassContent(context, settings, classNames));
                 fileNames.Add(managerFileName);
 
                 var bytes = Compile(settings, folder, fileNames.ToArray());
@@ -639,7 +658,7 @@ namespace Untitled.ConfigDataBuilder.Editor
         private static void InternalReimportData()
         {
             var settings = GetSettings();
-            var converters = SheetValueConverter.GetSheetValueConverters();
+            var converters = GetReaderContext(settings);
             string dataOutputPath;
             switch (settings.dataExportType) {
                 case DataExportType.ResourcesBytesAsset:

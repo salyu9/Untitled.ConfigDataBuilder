@@ -21,7 +21,7 @@ namespace Untitled.ConfigDataBuilder.Editor
 
         public bool IsNull(int index) => _reader.IsDBNull(index);
 
-        public object GetValue(int index) => _reader.GetValue(index);
+        public string Get(int index) => _reader.GetValue(index).ToString();
 
         public void Dispose()
         {

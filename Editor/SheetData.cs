@@ -21,7 +21,7 @@ namespace Untitled.ConfigDataBuilder.Editor
             public List<object[]> Rows { get; set; }
         }
 
-        private static InternalSheetData ReadSheet(ISheetValueConverterCollection converters, ISheetReader reader, string path, bool headerOnly)
+        private static InternalSheetData ReadSheet(SheetDataReaderContext context, ISheetReader reader, string path, bool headerOnly)
         {
             var sheetName = reader.SheetName;
             // Name row
@@ -35,7 +35,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                     header.Add(new ColumnInfo { IsIgnored = true });
                 }
                 else {
-                    var colName = reader.GetValue(colIndex).ToString().Trim();
+                    var colName = reader.Get(colIndex).Trim();
                     if (string.IsNullOrEmpty(colName) || colName[0] == '(' || colName[0] == '（') {
                         header.Add(new ColumnInfo { IsIgnored = true });
                     }
@@ -50,7 +50,11 @@ namespace Untitled.ConfigDataBuilder.Editor
                         }
                         colNameSet.Add(colName);
 
-                        header.Add(new ColumnInfo { ColIndex = colIndex, Name = colName });
+                        header.Add(new ColumnInfo {
+                            ColIndex = colIndex,
+                            Name = colName,
+                            DebugName = $"{path}({sheetName}) '{colName}'"
+                        });
                     }
                 }
             }
@@ -66,106 +70,48 @@ namespace Untitled.ConfigDataBuilder.Editor
                     colInfo.IsIgnored = true;
                 }
                 else if (!colInfo.IsIgnored) {
-                    colInfo.ConfigTypeName = reader.GetValue(colIndex).ToString();
-                    try {
-                        colInfo.Converter = converters.GetConverter(colInfo.ConfigTypeName);
-                    }
-                    catch (Exception exc) {
-                        throw new InvalidDataException($"{path}({sheetName}): Cannot create converter for type {colInfo.Name}", exc);
-                    }
+                    colInfo.ConfigTypeName = reader.Get(colIndex);
                 }
             }
 
             // Flag row
-            if (!reader.ReadNextRow()) {
-                throw new InvalidDataException($"{path}({sheetName}) has no flag row");
-            }
-            for (var colIndex = 0; colIndex < reader.CellCount; ++colIndex) {
-                var colInfo = header[colIndex];
-                if (colInfo.IsIgnored) {
-                    continue;
+            for (var flagRowIndex = 0; flagRowIndex < context.FlagRowCount; ++flagRowIndex) {
+                if (!reader.ReadNextRow()) {
+                    throw flagRowIndex == 0
+                        ? new InvalidDataException($"{path}({sheetName}) has no flag rows")
+                        : new InvalidDataException($"{path}({sheetName}) only has {flagRowIndex} flag rows (required: {context.FlagRowCount})");
                 }
-                var colDebugName = $"{path}({sheetName}) '{colInfo.Name}'";
-                var flagKey = false;
-                var flagIgnore = false;
-                var flagDefault = false;
-                var flagSeparator = false;
-                if (!reader.IsNull(colIndex)) {
-                    foreach (var flag in Helper.SplitEscapedString(reader.GetValue(colIndex).ToString(), '|')) {
-                        var trimmed = flag.Trim();
-                        if (string.IsNullOrEmpty(trimmed)) {
-                            continue;
-                        }
-                        if (string.Equals(trimmed, "key", StringComparison.OrdinalIgnoreCase)) {
-                            if (flagKey) {
-                                throw new InvalidDataException($"{colDebugName} has duplicated 'key' flag");
-                            }
-                            flagKey = true;
-                            colInfo.IsKey = true;
-                            colInfo.Keys = new HashSet<object>();
-                        }
-                        else if (string.Equals(trimmed, "ignore", StringComparison.OrdinalIgnoreCase)) {
-                            if (flagIgnore) {
-                                throw new InvalidDataException($"{colDebugName} has duplicated 'ignore' flag");
-                            }
-                            flagIgnore = true;
-                            colInfo.IsIgnored = true;
-                        }
-                        else if (trimmed.StartsWith("info:", StringComparison.OrdinalIgnoreCase)) {
-                            var rest = trimmed.Substring("info:".Length);
-                            if (!Enum.TryParse<InfoType>(rest, true, out var value)) {
-                                throw new InvalidDataException($"{colDebugName} has invalid info type '{rest}'");
-                            }
-                            colInfo.Info |= value;
-                        }
-                        else if (trimmed.StartsWith("default:", StringComparison.OrdinalIgnoreCase)) {
-                            if (flagDefault) {
-                                throw new InvalidDataException($"{colDebugName} has duplicated 'default' flag");
-                            }
-                            flagDefault = true;
-                            colInfo.RawDefaultValue = Helper.UnescapeString(trimmed.Substring("default:".Length).Trim());
-                        }
-                        else if (trimmed.StartsWith("separator:", StringComparison.OrdinalIgnoreCase)) {
-                            if (flagSeparator) {
-                                throw new InvalidDataException($"{colDebugName} has duplicated 'separator' flag");
-                            }
-                            flagSeparator = true;
-                            var rest = Helper.UnescapeString(trimmed.Substring("separator:".Length));
-                            if (rest.Length != colInfo.Converter.SeparatorLevel) {
-                                throw new InvalidDataException(
-                                    $"{colDebugName} separators size does not match the separator-level of '{colInfo.Converter.TypeName}' (level = {colInfo.Converter.SeparatorLevel})");
-                            }
-                            colInfo.Separators = rest;
-                        }
-                        else {
-                            throw new InvalidDataException($"{colDebugName} has unknown flag '{trimmed}'");
-                        }
+                for (var colIndex = 0; colIndex < reader.CellCount; ++colIndex) {
+                    var colInfo = header[colIndex];
+                    if (colInfo.IsIgnored) {
+                        continue;
                     }
-                    if (colInfo.IsKey && colInfo.Info != InfoType.None) {
-                        throw new InvalidDataException($"{colDebugName} is key AND info.");
-                    }
-                    if (colInfo.IsKey && colInfo.IsIgnored) {
-                        throw new InvalidDataException($"{colDebugName} is key AND ignored.");
-                    }
-                    if (colInfo.Info != InfoType.None && colInfo.IsIgnored) {
-                        throw new InvalidDataException($"{colDebugName} is info AND ignored.");
-                    }
-                }
-                if (!colInfo.IsIgnored) {
-                    if (!flagSeparator) {
-                        if (!colInfo.Converter.TryCreateDefaultSeparators(out var separators)) {
-                            throw new InvalidDataException($"{colDebugName} need to specify separators.");
-                        }
-                        colInfo.Separators = separators;
-                    }
-                    if (flagDefault) {
-                        try {
-                            colInfo.DefaultValue = colInfo.Converter.ParseEscaped(colInfo.RawDefaultValue, colInfo.Separators);
-                        }
-                        catch (Exception exc) {
-                            throw new InvalidDataException(
-                                $"{colDebugName} default value ({colInfo.RawDefaultValue}) cannot be converted to {colInfo.Converter.TypeName}: {exc.Message}",
-                                exc);
+
+                    if (!reader.IsNull(colIndex)) {
+                        foreach (var flag in Helper.SplitEscapedString(reader.Get(colIndex), '|')) {
+                            if (string.IsNullOrWhiteSpace(flag)) {
+                                continue;
+                            }
+                            var colonIndex = flag.IndexOf(':');
+                            if (colonIndex >= 0) {
+                                var flagName = flag.Substring(0, colonIndex).Trim().ToLower();
+                                var flagArg = Helper.UnescapeString(flag.Substring(colonIndex + 1).Trim());
+                                if (context.GetArgumentedFlagHandler(flagName, out var handler)) {
+                                    handler.HandleColumn(colInfo, flagArg);
+                                }
+                                else {
+                                    throw new InvalidDataException($"{colInfo.DebugName} has unknown flag '{flagName}:{flagArg}'");
+                                }
+                            }
+                            else {
+                                var flagName = flag.Trim().ToLower();
+                                if (context.GetFlagHandler(flagName, out var handler)) {
+                                    handler.HandleColumn(colInfo);
+                                }
+                                else {
+                                    throw new InvalidDataException($"{colInfo.DebugName} has unknown flag '{flagName}'");
+                                }
+                            }
                         }
                     }
                 }
@@ -173,6 +119,54 @@ namespace Untitled.ConfigDataBuilder.Editor
 
             // Densify
             header.RemoveAll(info => info.IsIgnored);
+
+            // Post flags
+            foreach (var colInfo in header) {
+                if (colInfo.IsKey && colInfo.Info != InfoType.None) {
+                    throw new InvalidDataException($"{colInfo.DebugName} is key AND info.");
+                }
+                if (colInfo.IsKey && colInfo.IsIgnored) {
+                    throw new InvalidDataException($"{colInfo.DebugName} is key AND ignored.");
+                }
+                if (colInfo.Info != InfoType.None && colInfo.IsIgnored) {
+                    throw new InvalidDataException($"{colInfo.DebugName} is info AND ignored.");
+                }
+                try {
+                    colInfo.Converter = context.GetConverter(colInfo.ConfigTypeName);
+                }
+                catch (Exception exc) {
+                    throw new InvalidDataException($"{path}({sheetName}): Cannot create converter for type {colInfo.Name}", exc);
+                }
+                if (colInfo.Separators != null) {
+                    if (colInfo.Separators.Length != colInfo.Converter.SeparatorLevel) {
+                        throw new InvalidDataException(
+                            $"{colInfo.DebugName} separators {colInfo.Separators} size does not match the separator-level of '{colInfo.Converter.TypeName}' (level = {colInfo.Converter.SeparatorLevel})");
+                    }
+                }
+                else {
+                    if (!colInfo.Converter.TryCreateDefaultSeparators(out var separators)) {
+                        throw new InvalidDataException($"{colInfo.DebugName} need to specify separators.");
+                    }
+                    colInfo.Separators = separators;
+                }
+                if (colInfo.DefaultValue != null) {
+                    if (!colInfo.Converter.Type.IsInstanceOfType(colInfo.DefaultValue)) {
+                        throw new InvalidOperationException($"{colInfo.DebugName} default value {colInfo.DefaultValue} is not instance of {colInfo.Converter.TypeName}");
+                    }
+                }
+                else {
+                    if (!string.IsNullOrWhiteSpace(colInfo.RawDefaultValue)) {
+                        try {
+                            colInfo.DefaultValue = colInfo.Converter.ParseEscaped(colInfo.RawDefaultValue, colInfo.Separators);
+                        }
+                        catch (Exception exc) {
+                            throw new InvalidDataException(
+                                $"{colInfo.DebugName} default value ({colInfo.RawDefaultValue}) cannot be converted to {colInfo.Converter.TypeName}: {exc.Message}",
+                                exc);
+                        }
+                    }
+                }
+            }
 
             if (headerOnly) {
                 return new InternalSheetData {
@@ -200,7 +194,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                         currentRow[index] = v;
                     }
                     else {
-                        var raw = reader.IsNull(colInfo.ColIndex) ? null : reader.GetValue(colInfo.ColIndex).ToString();
+                        var raw = reader.IsNull(colInfo.ColIndex) ? null : reader.Get(colInfo.ColIndex);
                         var converter = colInfo.Converter;
                         object result;
                         try {
@@ -293,7 +287,7 @@ namespace Untitled.ConfigDataBuilder.Editor
         /// <summary>
         /// Read all sheets from all files.
         /// </summary>
-        private static List<SheetData> InternalReadSheets(ISheetValueConverterCollection converters, IEnumerable<string> paths, bool headerOnly)
+        private static List<SheetData> InternalReadSheets(SheetDataReaderContext context, IEnumerable<string> paths, bool headerOnly)
         {
             var internalResult = new Dictionary<string, InternalSheetData>();
 
@@ -315,7 +309,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                     if (!Helper.CodeProvider.IsValidIdentifier(className)) {
                         throw new InvalidOperationException($"{className} is not valid identifier name.");
                     }
-                    var newSheetData = ReadSheet(converters, reader, path, headerOnly);
+                    var newSheetData = ReadSheet(context, reader, path, headerOnly);
                     if (internalResult.TryGetValue(className, out var sheetData)) {
                         MergeSheet(sheetData, newSheetData);
                     }
@@ -357,12 +351,12 @@ namespace Untitled.ConfigDataBuilder.Editor
             return result;
         }
 
-        public static List<SheetData> ReadAllSheets(ISheetValueConverterCollection converters, IEnumerable<string> paths)
+        public static List<SheetData> ReadAllSheets(SheetDataReaderContext converters, IEnumerable<string> paths)
         {
             return InternalReadSheets(converters, paths, false);
         }
 
-        public static List<SheetData> ReadAllHeaders(ISheetValueConverterCollection converters, IEnumerable<string> paths)
+        public static List<SheetData> ReadAllHeaders(SheetDataReaderContext converters, IEnumerable<string> paths)
         {
             return InternalReadSheets(converters, paths, true);
         }

@@ -2,6 +2,7 @@ using System;
 
 namespace Untitled.ConfigDataBuilder.Base
 {
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Enum | AttributeTargets.Interface)]
     public sealed class ConfigValueConverterAttribute : Attribute
     {
         public Type Type { get; }
