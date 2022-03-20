@@ -8,30 +8,26 @@ Sheet data construction will be compiled to an assembly (dll) that contains seve
 
 Sheet data will be export to bytes assets in resources folder, which can be loaded and used via the assembly.
 
-## Table of contents
-
-<!-- @import "[TOC]" {cmd="toc" depthFrom=1 depthTo=6 orderedList=false} -->
-
+Table of contents:
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=6 orderedList=false} -->
 <!-- code_chunk_output -->
 
-- [Untitled Config Data Builder](#untitled-config-data-builder)
-  - [Table of contents](#table-of-contents)
-  - [Requirements](#requirements)
-  - [Installation](#installation)
-  - [Configuration](#configuration)
-  - [Basic Usage](#basic-usage)
-    - [Class name](#class-name)
-    - [Sheet data structure](#sheet-data-structure)
-    - [Property types](#property-types)
-    - [Separators](#separators)
-    - [Escaping](#escaping)
-    - [Flags](#flags)
-    - [Recompile & auto reimport & play mode reload](#recompile-auto-reimport-play-mode-reload)
-  - [Advanced Usage](#advanced-usage)
-    - [Custom types](#custom-types)
-    - [Multi-Segment types](#multi-segment-types)
-    - [Custom flag handler](#custom-flag-handler)
-    - [Localization data](#localization-data)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Basic Usage](#basic-usage)
+  - [Class name](#class-name)
+  - [Sheet data structure](#sheet-data-structure)
+  - [Property types](#property-types)
+  - [Separators](#separators)
+  - [Escaping](#escaping)
+  - [Flags](#flags)
+  - [Recompile & auto reimport & play mode reload](#recompile-auto-reimport-play-mode-reload)
+- [Advanced Usage](#advanced-usage)
+  - [Custom types](#custom-types)
+  - [Multi-Segment types](#multi-segment-types)
+  - [Custom flag handler](#custom-flag-handler)
+  - [Localization data](#localization-data)
 
 <!-- /code_chunk_output -->
 
@@ -55,19 +51,34 @@ You can install this package via OpenUPM (recommended) or git URL.
 
 Use "Project Settings > Config Data Builder" to modify config building settings.
 
-- Source folder: The folder in project assets that contains the excel files.
+- Source Folder: The folder in project assets that contains the excel files.
 
-- Assembly namespace: The namespace of the classes in the compiled assembly.
+- Assembly Namespace: The namespace of the classes in the compiled assembly.
 
-- Assembly output path: The file path of the compiled assembly. The file name will be the assembly name.
+- Assembly Output Path: The file path of the compiled assembly. The file name will be the assembly name.
 
-- Data output: The path (relative to Assets/Resources) of the folder which will contain exported data.
+- Public Constructors: Whether the constructors of config classes are public. If true, scripts will be able to create instances of config classes.
 
-- Localization exporter type: If sheet data contains localizable data, a user script class can be set to export localization source data, see [Localization data](#localization-data) section for more details.
+- Flag Row Count: How many rows will be treated as flag rows.
+
+- Data Export Type: How config data will be exported. Can be one of the values below:
+
+  - Resources Bytes Assets
+
+    Data will be exported to .bytes assets in a specified folder under resources folder, thus can be load using `Resources.Load`.
+
+  - Other Bytes Assets
+    Data will be exported to .bytes assets in specifed folder. User will need to manually load data from assets, using method `Load(byte[])` of config classes.
+
+- Data Output: The path (relative to Assets/Resources if export type is "Resources Bytes Assets") of the folder which will contain exported data.
+
+- Auto Init: Only available if using "Resources Bytes Assets" export type. The builder will generate `ConfigDataManager.Initialize()` method which load all data from resources, and call it automatically when `AllConfig()` or `FromKey()` is invoked. User can also manually call `Initialize()` before using config data.
+
+- Localization Exporter Type: If sheet data contains localizable data, a user script class can be set to export localization source data, see [Localization data](#localization-data) section for more details.
 
 - Custom Type Assemblies: Config data can contain custom types from user scripts. To use custom types, add the names of the assemblies that contains these types at here. See [Custom Types](#custom-types) for more details about custom types.
 
-- Importing assemblies: Extra assemblies that the compiled assembly should reference. Custom type assemblies will be auto imported.
+- Importing Assemblies: Extra assemblies that the compiled assembly should reference. Custom type assemblies will be auto imported.
 
 ## Basic Usage
 
@@ -86,11 +97,12 @@ This tool can read data from .xlsx files and .fods files (Libre Office plain tex
 With settings:
 
 ```text
-Source folder: Assets/SourceConfigData
-Assembly name: MyProject.ConfigData
-Assembly namespace: MyProject.ConfigData
-Assembly output path: Assets/CompiledDlls/ConfigData.dll
-Data output: ExportedData
+Source Folder: Assets/SourceConfigData
+Assembly Namespace: MyProject.ConfigData
+Assembly Output path: Assets/CompiledDlls/ConfigData.dll
+Data Export Type: Resources Bytes Asset
+Data Output: ExportedData
+Auto Init: true
 ```
 
 Then you can use menu "Tools > Config Data > Rebuild Config" to build the dll and export config data to project. Result in this file structure:
@@ -247,9 +259,9 @@ Supported flags are list below.
 
 ### Recompile & auto reimport & play mode reload
 
-When source files are edited and saved, Untitled Config Builder will try to reimport source files and export config data. You needn't do anything if the construction is not changed. If editor is in play mode, config data will also be reloaded automatically, call to `AllConfigs()` and `From<Key>()` methods will reflect new changes. But config class instances won't change after acquired.
+When source files are edited and saved, Untitled Config Builder will try to reimport source files and export config data. You needn't do anything if the config class structural is not changed. If editor is in play mode, config data will also be reloaded automatically, call to `AllConfigs()` and `FromKey()` methods will reflect new changes. But config class instances won't change after acquired.
 
-If config construction has changed, reimporting procedure will fail with a warning reported: "Config dll types mismatch. Rebuilding config required." In this case, you should use menu "Tools > Config Data > Rebuild Config" to rebuild config assembly and reimport config data.
+If config class structural has changed, reimporting procedure will fail with a warning reported: "Config dll types mismatch. Rebuilding config required." In this case, you should use menu "Tools > Config Data > Rebuild Config" to rebuild config assembly and reimport config data.
 
 You can force rebuild all via "Tools > Config Data > Force rebuild Config". You can also reimport data manually using "Tools > Config Data > Reimport data".
 

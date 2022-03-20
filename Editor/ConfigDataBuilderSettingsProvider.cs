@@ -12,19 +12,19 @@ namespace Untitled.ConfigDataBuilder.Editor
 
         private class Styles
         {
-            public static readonly GUIContent SourceFolder = new GUIContent("Source folder",
+            public static readonly GUIContent SourceFolder = new GUIContent("Source Folder",
                 "The folder where config files are in.");
 
-            public static readonly GUIContent AssemblyNamespace = new GUIContent("Assembly namespace",
+            public static readonly GUIContent AssemblyNamespace = new GUIContent("Assembly Namespace",
                 "The namespace of classes in target assembly.");
 
-            public static readonly GUIContent AssemblyOutputPath = new GUIContent("Assembly output path",
+            public static readonly GUIContent AssemblyOutputPath = new GUIContent("Assembly Output Path",
                 "The path of compiled assembly, e.g. 'Assets/ConfigData/ConfigData.dll'.");
 
-            public static readonly GUIContent PublicConstructors = new GUIContent("Public constructors",
+            public static readonly GUIContent PublicConstructors = new GUIContent("Public Constructors",
                 "Generate public constructors for config classes. If not enabled, your script will not able to create instances of config classes");
 
-            public static readonly GUIContent FlagRowCount = new GUIContent("Flag row count");
+            public static readonly GUIContent FlagRowCount = new GUIContent("Flag Row Count");
 
             public static readonly GUIContent DataExportType = new GUIContent("Data Export Type",
                 "Control how the config data are exported.\n" + 
@@ -34,16 +34,16 @@ namespace Untitled.ConfigDataBuilder.Editor
             public static readonly GUIContent AutoInit = new GUIContent("Auto Init",
                 "Auto load config data from resources when config data is queried (AllConfg / From<X> is called)");
                 
-            public static readonly GUIContent DataOutput = new GUIContent("Data output",
+            public static readonly GUIContent DataOutput = new GUIContent("Data Output",
                 "Exported config data location (must be in <Resources>, for example: setting this to 'ConfigData' will make config data export to 'Assets/Resources/ConfigData/' folder).");
 
-            public static readonly GUIContent L10nExporterType = new GUIContent("Localizations exporter type",
+            public static readonly GUIContent L10nExporterType = new GUIContent("Localizations Exporter Type",
                 "Exporter type to export source localization file.");
 
             public static readonly GUIContent CustomTypesAssemblies = new GUIContent("Custom Types Assemblies",
                 "Import custom config types from these assemblies.");
 
-            public static readonly GUIContent ImportingAssemblies = new GUIContent("Importing assemblies",
+            public static readonly GUIContent ImportingAssemblies = new GUIContent("Importing Assemblies",
                 "Assemblies to import in config. Custom config data type can be imported through this way.");
         }
 
