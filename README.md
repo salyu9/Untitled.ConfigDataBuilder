@@ -45,7 +45,7 @@ You can install this package via OpenUPM (recommended) or git URL.
 
 - via OpenUPM: Install this [OpenUPM Package](https://openupm.com/packages/com.github.salyu9.untitledconfigdatabuilder/)
 
-- via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder.git#v0.1.12` to package manager.
+- via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder.git#v0.1.13` to package manager.
 
 ## Configuration
 
@@ -259,7 +259,7 @@ Supported flags are list below.
 
 ### Recompile & auto reimport & play mode reload
 
-When source files are edited and saved, Untitled Config Builder will try to reimport source files and export config data. You needn't do anything if the config class structural is not changed. If editor is in play mode, config data will also be reloaded automatically, call to `AllConfigs()` and `FromKey()` methods will reflect new changes. But config class instances won't change after acquired.
+When source files are edited and saved, Untitled Config Builder will try to reimport source files and export config data. You needn't do anything if the config class structural is not changed. If editor is in play mode, config data will also be reloaded automatically if "Auto Init" is enabled, call to `AllConfigs()` and `FromKey()` methods will reflect new changes. But config class instances won't change after acquired.
 
 If config class structural has changed, reimporting procedure will fail with a warning reported: "Config dll types mismatch. Rebuilding config required." In this case, you should use menu "Tools > Config Data > Rebuild Config" to rebuild config assembly and reimport config data.
 
