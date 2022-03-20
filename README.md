@@ -158,7 +158,7 @@ A sheet that have a name begin with '(' or '（' is fully ignored. This allows u
 
 An example sheet data looks like below:
 
-![Image](./Doc/Images/sheet-structure.png)
+![Image](./Documentation~/Images/sheet-structure.png)
 
 - The first row is the name row, which defines the property names of the result class. Empty names or names begin with '(' or '（' imply ignored columns, allows design-only columns.
 
@@ -185,7 +185,7 @@ Basic types supported are:
 
 - `T[]`: array of type `T`. Generates a `T[]` property in script. Data format is the same as list. Arrays are mutable so you may accidentally modify config data shared by other scripts. Better to use `[T]` instead.
 
-- `{TKey: TValue}`: dictionary that maps type `TKey` to type `TValue` (read-only). Generates a `IReadOnlyDictionary<TKey, TValue>` property in script. Data format is like `a: 1, b: 2` (of type `{string: int}`). Be careful not to use improper types as keys (such as lists).
+- `{TKey: TValue}`: dictionary that maps type `TKey` to type `TValue` (read-only). Generates an `IReadOnlyDictionary<TKey, TValue>` property in script. Data format is like `a: 1, b: 2` (of type `{string: int}`). Be careful not to use improper types as keys (such as lists).
 
 - `T?`: Nullable wrapped type, such as `float?`. If data cell is blank or `null`, the value will be `null`. `T` must be struct type.
 
@@ -218,15 +218,15 @@ Which will be converted to `[[[1,2,3], [4,5]], [[7,8], [9,10,11]]]`.
 
 Flag row defines special handling of properties. A column (property) can have multiple flags, separated by '|'. Some flag can have a value after it with a colon. Example: `separator:# | key`.
 
-Supported flags are list below.
+Supported flags are listed below.
 
 - `key`
 
     Indicates that value of this property is unique in this config and can be used as a dictionary key. Multiple key properties are allowed.
 
-    Rows with its key property leaved empty will be ignored.
+    A row with its key property leaved empty will be ignored.
 
-    ![EmptyKey](Doc/Images/empty-key.png)
+    ![EmptyKey](Documentation~/Images/empty-key.png)
 
     In the config class, each key property corresponds to a dictionary and a query method. For example, if 'Skill' sheet has an `int` key property 'Id' and a `string` key property 'Name', you can query config row with code like this:
 
@@ -259,13 +259,13 @@ Supported flags are list below.
 
 ### Recompile & auto reimport & play mode reload
 
-When source files are edited and saved, Untitled Config Builder will try to reimport source files and export config data. You needn't do anything if the config class structural is not changed. If editor is in play mode, config data will also be reloaded automatically if "Auto Init" is enabled, call to `AllConfigs()` and `FromKey()` methods will reflect new changes. But config class instances won't change after acquired.
+When source files are edited and saved, Untitled Config Builder will try to reimport source files and export config data. You needn't do anything if the config class structures are not changed. If editor is in play mode, config data will also be reloaded automatically if "Auto Init" is enabled, call to `AllConfigs()` and `FromKey()` methods will reflect new changes. But config class instances won't change after acquired.
 
-If config class structural has changed, reimporting procedure will fail with a warning reported: "Config dll types mismatch. Rebuilding config required." In this case, you should use menu "Tools > Config Data > Rebuild Config" to rebuild config assembly and reimport config data.
+If config class structures have changed, reimporting procedure will fail with a warning reported: "Config dll types mismatch. Rebuilding config required." In this case, you should use menu "Tools > Config Data > Rebuild Config" to rebuild config assembly and reimport config data.
 
 You can force rebuild all via "Tools > Config Data > Force rebuild Config". You can also reimport data manually using "Tools > Config Data > Reimport data".
 
-⚠️ _Warning_: if you changed your custom type converters, you may need to force rebuild the assembly.
+⚠️ _Warning_: if you changed your custom types or converters, you may need to force rebuild the assembly.
 
 ## Advanced Usage
 
@@ -344,7 +344,7 @@ namespace MyCodeNamespace
 
 Then you can use it in config data:
 
-![Image](Doc/Images/my-color.png)
+![Image](Documentation~/Images/my-color.png)
 
 ### Multi-Segment types
 
@@ -413,7 +413,7 @@ namespace MyCodeNamespace
 
 Then you can use it in your sheets:
 
-![Image](Doc/Images/my-point.png)
+![Image](Documentation~/Images/my-point.png)
 
 The default separator for a custom multi-segment type is "`,`". You can assign a deferent separator in the attribute: `[ConfigValueConverter(typeof(MyPointConverter), DefaultSeparator = ';')]`.
 
@@ -476,7 +476,7 @@ It is a common use case that config contains properties that should be localized
 
 Example sheet:
 
-![Localization](Doc/Images/localization.png)
+![Localization](Documentation~/Images/localization.png)
 
 Example exporter:
 
