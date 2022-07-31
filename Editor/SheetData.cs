@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace Untitled.ConfigDataBuilder.Editor
 {
@@ -19,6 +20,36 @@ namespace Untitled.ConfigDataBuilder.Editor
             public string SheetName { get; set; }
             public List<ColumnInfo> Header { get; set; }
             public List<object[]> Rows { get; set; }
+        }
+
+        private static string ToA1Reference(int colIndex, int rowIndex)
+        {
+            if (colIndex > 1024) {
+                throw new InvalidDataException($"Too many rows: {colIndex}");
+            }
+
+            Span<char> colChars = stackalloc char[12];
+            var index = 0;
+
+            if (colIndex < 26) {
+                colChars[index++] = (char)('A' + colIndex);
+            }
+            else if (colIndex < 26 + 26 * 26) {
+                var a1 = Math.DivRem(colIndex - 26, 26, out var a2);
+                colChars[index++] = (char)('A' + a1);
+                colChars[index++] = (char)('A' + a2);
+            }
+            else {
+                var a = Math.DivRem(colIndex - 26 - 26 * 26, 26, out var a3);
+                var a1 = Math.DivRem(a, 26, out var a2);
+                colChars[index++] = (char)('A' + a1);
+                colChars[index++] = (char)('A' + a2);
+                colChars[index++] = (char)('A' + a3);
+            }
+            if (!(rowIndex + 1).TryFormat(colChars[index..], out var written)) {
+                throw new InvalidDataException($"Too many rows: {rowIndex}");
+            }
+            return new string(colChars[..(index + written)]);
         }
 
         private static InternalSheetData ReadSheet(SheetDataReaderContext context, ISheetReader reader, string path, bool headerOnly)
@@ -203,12 +234,12 @@ namespace Untitled.ConfigDataBuilder.Editor
                         }
                         catch (Exception exc) {
                             throw new InvalidDataException(
-                                $"{path}({sheetName})(row: {rowIndex + 1}, col: {colInfo.ColIndex + 1}): cannot parse  {(raw != null ? "data \'" + raw + "\'" : "null")} to {converter.TypeName}: {exc.Message}");
+                                $"{path}({sheetName})[{ToA1Reference(colInfo.ColIndex, rowIndex)}]: cannot parse  {(raw != null ? "data \'" + raw + "\'" : "null")} to {converter.TypeName}: {exc.Message}");
                         }
                         if (colInfo.Keys is { } set) {
                             if (set.Contains(result)) {
                                 throw new InvalidDataException(
-                                    $"{path}({sheetName})(row: {rowIndex + 1}, col: {colInfo.ColIndex + 1}): duplicated key '{result}'");
+                                    $"{path}({sheetName})[{ToA1Reference(colInfo.ColIndex, rowIndex)}]: duplicated key '{result}'");
                             }
                             set.Add(result);
                         }
