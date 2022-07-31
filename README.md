@@ -33,7 +33,7 @@ Table of contents:
 
 ## Requirements
 
-Unity 2019.4 ~ Unity 2021.2
+Unity 2019.4 ~ Unity 2021.3
 
 ⚠️ _Warning_: This package is under development and may change at any time, please use at your own risk.
 
@@ -45,7 +45,7 @@ You can install this package via OpenUPM (recommended) or git URL.
 
 - via OpenUPM: Install this [OpenUPM Package](https://openupm.com/packages/com.github.salyu9.untitledconfigdatabuilder/)
 
-- via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder.git#v0.1.13` to package manager.
+- via Git: Add `https://github.com/salyu9/Untitled.ConfigDataBuilder.git#v0.1.14` to package manager.
 
 ## Configuration
 

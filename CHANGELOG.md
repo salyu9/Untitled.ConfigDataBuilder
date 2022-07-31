@@ -1,5 +1,9 @@
 # Untitled Config Data Builder
 
+## [0.1.14] - 2022-07-31
+
+- Changed: use A1 reference in error messages.
+
 ## [0.1.13] - 2022-03-21
 
 - Added flag row count settings: allow multiple flag rows.
