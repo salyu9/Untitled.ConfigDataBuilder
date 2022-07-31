@@ -4,6 +4,8 @@
 
 - Changed: use A1 reference in error messages.
 
+- Fixed: row index with multiple flag row.
+
 ## [0.1.13] - 2022-03-21
 
 - Added flag row count settings: allow multiple flag rows.
