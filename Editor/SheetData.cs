@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 
 namespace Untitled.ConfigDataBuilder.Editor
 {
@@ -24,11 +23,14 @@ namespace Untitled.ConfigDataBuilder.Editor
 
         private static string ToA1Reference(int colIndex, int rowIndex)
         {
-            if (colIndex > 1024) {
+            if (colIndex >= 1024) {
                 throw new InvalidDataException($"Too many rows: {colIndex}");
             }
+            if (rowIndex >= 1024 * 1024) {
+                throw new InvalidDataException($"Too many rows: {rowIndex}");
+            }
 
-            Span<char> colChars = stackalloc char[12];
+            var colChars = new char[3];
             var index = 0;
 
             if (colIndex < 26) {
@@ -46,10 +48,7 @@ namespace Untitled.ConfigDataBuilder.Editor
                 colChars[index++] = (char)('A' + a2);
                 colChars[index++] = (char)('A' + a3);
             }
-            if (!(rowIndex + 1).TryFormat(colChars[index..], out var written)) {
-                throw new InvalidDataException($"Too many rows: {rowIndex}");
-            }
-            return new string(colChars[..(index + written)]);
+            return new string(colChars, 0, index) + (rowIndex + 1).ToString();
         }
 
         private static InternalSheetData ReadSheet(SheetDataReaderContext context, ISheetReader reader, string path, bool headerOnly)
@@ -209,7 +208,7 @@ namespace Untitled.ConfigDataBuilder.Editor
             }
 
             // Rows
-            var rowIndex = 3;
+            var rowIndex = context.FlagRowCount + 2;
             var rows = new List<object[]>();
             while (reader.ReadNextRow()) {
                 // skip rows with empty key
